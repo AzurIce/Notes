@@ -24,13 +24,30 @@ Minecraft Server 的输入命令、输出信息都有着固定的格式，包含
 
     [TISUnion/PrimeBackup: A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world (github.com)](https://github.com/TISUnion/PrimeBackup)
 
-    先做这个，常识拯救一下我的硬盘（）
+    先做这个，尝试拯救一下我的硬盘（）
 
 - 镜像服相关
 
 - 一些简单实用的小工具
 
     here、计分板等等
+
+## 插件
+
+有几种方案：
+
+- extism：基于 wasm。
+- Rhai：一个基于 Rust 的 script 语言
+
+由于 wasm 类型等限制会极大增加插件编写难度，所以最终选择了 Rhai。
+
+将必要的 API 及必要的 lib 实现并暴露给 Rhai，通过 Rhai 编写钩子函数，在对应事件触发时调用。
+
+插件系统的 dev log：
+
+- 2024-08-25：实现了插件系统的原型。[4b4877b](https://github.com/AzurIce/ice/commit/4b4877ba2ee5c17b64c9a7684e39efaa14edf4b4)
+
+  简单复刻了 TIS 的 `!!here`（[TISUnion/Here: A MCDeamon plugin for broadcasting location.](https://github.com/TISUnion/Here/tree/master)）
 
 ## 相关内容
 
@@ -39,3 +56,5 @@ Minecraft Server 的输入命令、输出信息都有着固定的格式，包含
 MCDR 插件开发文档：[MCDR 插件 — MCDReforged 2.13.1 文档](https://docs.mcdreforged.com/zh-cn/latest/plugin_dev/basic.html#what-is-a-mcdr-plugin)
 
 插件市场：[Plugin Catalogue - MCDReforged](https://mcdreforged.com/en/plugins)
+
+wasm plugin ecosystem：https://extism.org/docs/overview
