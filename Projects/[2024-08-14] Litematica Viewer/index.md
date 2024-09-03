@@ -19,3 +19,13 @@ NBT 相关：
 
 - [mindstorm38/mc173: A work-in-progress (80%) Minecraft beta 1.7.3 server made in Rust. (github.com)](https://github.com/mindstorm38/mc173)
 
+
+
+[iceiix/stevenarella: Multi-protocol Minecraft-compatible client written in Rust (github.com)](https://github.com/iceiix/stevenarella)
+
+[BGR360/brine: Work-in-progress Minecraft client written in Rust using the Bevy game engine. (github.com)](https://github.com/BGR360/brine)
+
+[PrismarineJS/minecraft-data: Language independent module providing minecraft data for minecraft clients, servers and libraries. (github.com)](https://github.com/PrismarineJS/minecraft-data)
+
+[Trivernis/minecraft-data-rs: Rust wrapper for minecraft-data (github.com)](https://github.com/Trivernis/minecraft-data-rs)
+
