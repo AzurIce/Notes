@@ -12,18 +12,25 @@ use log::info;
 
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
-fn hit_sphere(center: Vec3, radius: f32, ray: &Ray) -> bool {
+fn hit_sphere(center: Vec3, radius: f32, ray: &Ray) -> f32 {
     let oc = center - ray.origin;
     let a = ray.direction.dot(ray.direction);
     let b = oc.dot(ray.direction);
     let c = oc.dot(oc) - radius * radius;
     let discriminant = b * b - a * c;
-    discriminant - 0.0 >= f32::EPSILON
+
+    if discriminant - 0.0 < f32::EPSILON {
+        return -1.0;
+    }
+
+    (b - discriminant.sqrt()) / a
 }
 
 pub fn ray_color(ray: &Ray) -> Vec3 {
-    if hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray) {
-        return Vec3::new(1.0, 0.0, 0.0);
+    let t = hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray);
+    if t > 0.0 {
+        let n = (ray.at(t) - Vec3::new(0.0, 0.0, -1.0)).normalize();
+        return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
     }
 
     let unit_direction = ray.direction.normalize();
