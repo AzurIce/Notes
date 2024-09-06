@@ -20,7 +20,7 @@ fn main() {
     let image_width = 256;
     let image_height = 256;
 
-    let file = File::create("image.ppm").unwrap();
+    let file = File::create("image_c01.ppm").unwrap();
     let mut writer = BufWriter::new(file);
 
     // Render

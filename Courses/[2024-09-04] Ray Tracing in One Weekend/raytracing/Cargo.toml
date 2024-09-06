@@ -6,9 +6,13 @@ edition = "2021"
 [dependencies]
 
 [workspace]
-members = ["workspace/c01-ppm-image"]
+members = [
+    "workspace/c01-ppm-image",
+    "workspace/c02-ray"
+]
 
 [workspace.dependencies]
+glam = "0.29.0"
 env_logger = "0.11.5"
 indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.3"
