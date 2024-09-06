@@ -17,7 +17,7 @@ fn main() {
     // let (image_width, image_height) = (400, 225);
     let aspect_ratio = image_width as f32 / image_height as f32; // real aspect ratio
 
-    let camera = Camera::new(Vec3::new(0.0, 0.0, 0.0), 1.0, aspect_ratio);
+    let camera = Camera::new(aspect_ratio);
 
     camera.render_to_ppm(&world, image_width, "image_c05.ppm");
 }

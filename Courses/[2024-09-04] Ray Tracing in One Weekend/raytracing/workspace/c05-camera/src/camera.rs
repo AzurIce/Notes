@@ -28,20 +28,47 @@ pub struct Camera {
     camera_center: Vec3,
 }
 
+impl Default for Camera {
+    fn default() -> Self {
+        let aspect_ratio = 16.0 / 9.0;
+        let viewport_height = 2.0;
+        let viewport_width = viewport_height * aspect_ratio;
+
+        Self {
+            focal_length: 1.0,
+            aspect_ratio,
+            viewport_height,
+            viewport_width,
+            camera_center: Vec3::ZERO,
+        }
+    }
+}
+
 impl Camera {
-    pub fn new(camera_center: Vec3, focal_length: f32, aspect_ratio: f32) -> Self {
+    pub fn new(aspect_ratio: f32) -> Self {
         let viewport_height = 2.0;
         let viewport_width = viewport_height * aspect_ratio;
 
         Camera {
-            focal_length,
             aspect_ratio,
             viewport_height,
             viewport_width,
-            camera_center,
+            ..Default::default()
         }
     }
 
+    pub fn camera_center(mut self, camera_center: Vec3) -> Self {
+        self.camera_center = camera_center;
+        self
+    }
+
+    pub fn focal_length(mut self, focal_length: f32) -> Self {
+        self.focal_length = focal_length;
+        self
+    }
+}
+
+impl Camera {
     pub fn render_to_ppm(
         &self,
         world: &Vec<Box<dyn Hittable>>,
