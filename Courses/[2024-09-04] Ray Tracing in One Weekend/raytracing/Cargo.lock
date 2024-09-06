@@ -104,6 +104,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "c05-camera"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "glam",
+ "indicatif",
+ "indicatif-log-bridge",
+ "log",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -11,6 +11,7 @@ members = [
     "workspace/c02-ray",
     "workspace/c03-sphere",
     "workspace/c04-hittable",
+    "workspace/c05-camera",
 ]
 
 [workspace.dependencies]
