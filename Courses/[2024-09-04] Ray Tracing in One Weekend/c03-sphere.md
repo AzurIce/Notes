@@ -138,5 +138,26 @@ fn hit_sphere(center: Vec3, radius: f32, ray: &Ray) -> f32 {
 }
 ```
 
+## 四、相交正面与反面的法线向量
 
+目前的法线方向是始终从球心指向外面的。
+
+当光线从球体外部与球相交，法线方向是与光线方向相反的，然而假如光线是从球体内部与圆相交的，法线方向则是顺着光线方向的，这是不对的。
+
+可以通过一个指向外部的向量与光线向量的点积来判断光线是从哪一面相交的，进而可以保证法线方向永远与光线方向相反：
+
+```rust
+let outward_normal = (point - self.center) / self.radius;
+
+let front_face = ray.direction.dot(outward_normal) - 0.0 < f32::EPSILON;
+let normal = if front_face {
+    outward_normal
+} else {
+    -outward_normal
+};
+
+let n = normal.normalize();
+```
+
+这个 `front_face` 在后续还会用到，因此把它也存到 `HitRecord` 中。
 

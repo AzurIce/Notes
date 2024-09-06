@@ -27,9 +27,22 @@ fn hit_sphere(center: Vec3, radius: f32, ray: &Ray) -> f32 {
 }
 
 pub fn ray_color(ray: &Ray) -> Vec3 {
-    let t = hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray);
+    let center = Vec3::new(0.0, 0.0, -1.0);
+
+    let t = hit_sphere(center, 0.5, ray);
+    let point = ray.at(t);
+
     if t > 0.0 {
-        let n = (ray.at(t) - Vec3::new(0.0, 0.0, -1.0)).normalize();
+        let outward_normal = (point - center) / 0.5;
+
+        let front_face = ray.direction.dot(outward_normal) - 0.0 < f32::EPSILON;
+        let normal = if front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
+
+        let n = normal.normalize();
         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
     }
 
@@ -84,7 +97,13 @@ fn main() {
             let color = ray_color(&ray);
             let color_u8 = (255.999 * color).clamp(Vec3::ZERO, Vec3::splat(255.0));
             writer
-                .write_all(format!("\n{} {} {}", color_u8.x as u32, color_u8.y as u32, color_u8.z as u32).as_bytes())
+                .write_all(
+                    format!(
+                        "\n{} {} {}",
+                        color_u8.x as u32, color_u8.y as u32, color_u8.z as u32
+                    )
+                    .as_bytes(),
+                )
                 .unwrap();
             pg.inc(1);
         }
