@@ -33,11 +33,10 @@ fn main() {
     // Camera
     let focal_length = 1.0;
     let viewport_height = 2.0;
-    let viewport_width =
-        (viewport_height as f32 * (image_width as f32 / image_height as f32)) as u32;
+    let viewport_width = viewport_height as f32 * (image_width as f32 / image_height as f32);
     let camera_center = Vec3::new(0.0, 0.0, 0.0);
-    let viewport_u = Vec3::new(viewport_width as f32, 0.0, 0.0);
-    let viewport_v = Vec3::new(0.0, -viewport_height as f32, 0.0);
+    let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
+    let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
 
     let pixel_delta_u = viewport_u / image_width as f32;
     let pixel_delta_v = viewport_v / image_height as f32;
