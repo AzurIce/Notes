@@ -10,6 +10,7 @@ members = [
     "workspace/c01-ppm-image",
     "workspace/c02-ray",
     "workspace/c03-sphere",
+    "workspace/c04-hittable",
 ]
 
 [workspace.dependencies]

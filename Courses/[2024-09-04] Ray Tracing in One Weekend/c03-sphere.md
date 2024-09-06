@@ -1,5 +1,11 @@
 # c03-sphere
 
+球体与光线相交、法线向量计算
+
+![image_c03](./assets/image_c03.png)
+
+---
+
 ## 一、光线与球体的相交
 
 简单的解析几何，光线 $\mathbf{P}(t) = \mathbf{Q} + t\mathbf{d}$ 与半径为 $r$ 中心位于 $\mathbf{C}$ 的球体相交的方程为：
