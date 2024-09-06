@@ -1,5 +1,7 @@
 # C05-refactor
 
+## 一、全局 Logger
+
 首先封装一个全局的 logger：
 
 ```rust
@@ -30,6 +32,8 @@ pub fn logger() -> &'static Logger {
     LOGGER.get_or_init(|| Logger::init())
 }
 ```
+
+## 二、Camera
 
 然后封装一下 Camera。
 
@@ -112,4 +116,52 @@ impl Camera {
     }
 }
 ```
+
+## 三、使用 Range 表示 tmin 与 tmax
+
+```rust
+pub trait Hittable {
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord>;
+}
+```
+
+用 `t_range.start()` 替代 `tmin`，用 `t_range_end` 替代 `tmax`。
+
+```rust
+impl Hittable for Sphere {
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
+        // ...
+        if t < t_range.start || t_range.end < t {
+            t = (-b + sqrtd) / a;
+        }
+        if t < t_range.start || t_range.end < t {
+            return None;
+        }
+
+        // ...
+    }
+}
+```
+
+
+
+```rust
+impl Hittable for World {
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
+        let mut closest = t_range.end;
+        let mut hit_record = None;
+        for object in self.iter() {
+            if let Some(record) = object.hit(ray, t_range.start..closest) {
+                closest = record.t;
+                hit_record = Some(record);
+            }
+        }
+        hit_record
+    }
+}
+```
+
+
+
+
 

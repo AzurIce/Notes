@@ -1,5 +1,8 @@
 pub mod log;
 pub mod camera;
+pub mod utils;
+
+use std::ops::Range;
 
 use glam::Vec3;
 
@@ -26,7 +29,7 @@ pub struct HitRecord {
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord>;
 }
 
 pub struct Sphere {
@@ -41,7 +44,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = ray.direction.dot(ray.direction);
         let b = oc.dot(ray.direction);
@@ -53,10 +56,10 @@ impl Hittable for Sphere {
 
         let sqrtd = discriminant.sqrt();
         let mut t = (-b - sqrtd) / a;
-        if t - t_min < f32::EPSILON || t_max - t < f32::EPSILON {
+        if t < t_range.start || t_range.end < t {
             t = (-b + sqrtd) / a;
         }
-        if t - t_min < f32::EPSILON || t_max - t < f32::EPSILON {
+        if t < t_range.start || t_range.end < t {
             return None;
         }
 
@@ -78,11 +81,11 @@ impl Hittable for Sphere {
 pub type World = Vec<Box<dyn Hittable>>;
 
 impl Hittable for World {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let mut closest = t_max;
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
+        let mut closest = t_range.end;
         let mut hit_record = None;
         for object in self.iter() {
-            if let Some(record) = object.hit(ray, t_min, closest) {
+            if let Some(record) = object.hit(ray, t_range.start..closest) {
                 closest = record.t;
                 hit_record = Some(record);
             }
