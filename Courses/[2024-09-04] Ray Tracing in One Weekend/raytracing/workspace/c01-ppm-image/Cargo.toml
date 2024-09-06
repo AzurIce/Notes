@@ -1,0 +1,10 @@
+[package]
+name = "c01-ppm-image"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+env_logger.workspace = true
+indicatif.workspace = true
+indicatif-log-bridge.workspace = true
+log.workspace = true
