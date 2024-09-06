@@ -64,7 +64,7 @@ fn main() {
             let color = ray_color(&ray);
             let color_u8 = (255.999 * color).clamp(Vec3::ZERO, Vec3::splat(255.0));
             writer
-                .write_all(format!("\n{} {} {}", color_u8.x, color_u8.y, color_u8.z).as_bytes())
+                .write_all(format!("\n{} {} {}", color_u8.x as u32, color_u8.y as u32, color_u8.z as u32).as_bytes())
                 .unwrap();
             pg.inc(1);
         }

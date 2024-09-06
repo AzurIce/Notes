@@ -15,9 +15,9 @@ const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn hit_sphere(center: Vec3, radius: f32, ray: &Ray) -> bool {
     let oc = center - ray.origin;
     let a = ray.direction.dot(ray.direction);
-    let b = -2.0 * oc.dot(ray.direction);
+    let b = oc.dot(ray.direction);
     let c = oc.dot(oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
+    let discriminant = b * b - a * c;
     discriminant - 0.0 >= f32::EPSILON
 }
 
@@ -77,7 +77,7 @@ fn main() {
             let color = ray_color(&ray);
             let color_u8 = (255.999 * color).clamp(Vec3::ZERO, Vec3::splat(255.0));
             writer
-                .write_all(format!("\n{} {} {}", color_u8.x, color_u8.y, color_u8.z).as_bytes())
+                .write_all(format!("\n{} {} {}", color_u8.x as u32, color_u8.y as u32, color_u8.z as u32).as_bytes())
                 .unwrap();
             pg.inc(1);
         }
