@@ -96,7 +96,7 @@ impl Hittable for World {
 对应的还需要修改 `ray_color` 函数：
 
 ```diff
-pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>) -> Vec3 {
+pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
 -     let t = hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray);
 -     if t > 0.0 {
 -         let n = (ray.at(t) - Vec3::new(0.0, 0.0, -1.0)).normalize();
@@ -136,7 +136,7 @@ fn main() {
 
 ```rust
 fn render_to_ppm(
-    world: &Vec<Box<dyn Hittable>>,
+    world: &World,
     image_width: u32,
     image_height: u32,
     multi: &MultiProgress,
