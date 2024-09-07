@@ -11,7 +11,7 @@ use indicatif::ProgressBar;
 use rand::random;
 
 pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
-    if let Some(record) = world.hit(ray, 0.0..f32::INFINITY) {
+    if let Some(record) = world.hit(ray, f32::EPSILON..f32::INFINITY) {
         let n = record.normal.normalize();
         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
     }

@@ -50,10 +50,10 @@ impl Hittable for Sphere {
 
         let sqrtd = discriminant.sqrt();
         let mut t = (-b - sqrtd) / a;
-        if t - t_min < f32::EPSILON || t_max - t < f32::EPSILON {
+        if t - t_min < 0.0 || t_max - t < 0.0 {
             t = (-b + sqrtd) / a;
         }
-        if t - t_min < f32::EPSILON || t_max - t < f32::EPSILON {
+        if t - t_min < 0.0 || t_max - t < 0.0 {
             return None;
         }
 
