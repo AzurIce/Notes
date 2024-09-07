@@ -63,7 +63,9 @@ fn main() {
     // let (image_width, image_height) = (400, 225);
     let aspect_ratio = image_width as f32 / image_height as f32; // real aspect ratio
 
-    let mut camera = Camera::new(aspect_ratio);
+    let mut camera = Camera::new(aspect_ratio)
+        .pos(Vec3::new(-1.0, 1.0, 1.0))
+        .look_at(Vec3::new(0.1, 0.03, -0.64));
 
     camera.render_to_path(&world, image_width, "image_c11-fov90.png");
 
