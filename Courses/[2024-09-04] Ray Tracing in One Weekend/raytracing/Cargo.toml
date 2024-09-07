@@ -13,6 +13,7 @@ members = [
     "workspace/c04-hittable",
     "workspace/c05-camera",
     "workspace/c06-antialiasing",
+    "workspace/c07-diffuse-materials",
 ]
 
 [workspace.dependencies]
@@ -22,3 +23,5 @@ indicatif = "0.17.8"
 indicatif-log-bridge = "0.2.3"
 log = "0.4.22"
 rand = "0.8.5"
+image = { version = "0.25.2", features = ["rayon"] }
+rayon = "1.10.0"
