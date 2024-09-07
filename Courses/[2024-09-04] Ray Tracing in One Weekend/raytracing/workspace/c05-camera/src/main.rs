@@ -1,4 +1,4 @@
-use c05_camera::{camera::Camera, Hittable, Sphere};
+use c05_camera::{camera::Camera, Sphere, World};
 use glam::Vec3;
 
 // Ideal aspect ratio
@@ -6,7 +6,7 @@ const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
 fn main() {
     // Setup world
-    let world: Vec<Box<dyn Hittable>> = vec![
+    let world: World = vec![
         Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)),
         Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)),
     ];

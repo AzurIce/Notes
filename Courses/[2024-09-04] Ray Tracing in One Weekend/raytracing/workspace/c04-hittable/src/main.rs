@@ -3,7 +3,7 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use c04_hittable::{Hittable, Ray, Sphere};
+use c04_hittable::{Hittable, Ray, Sphere, World};
 use env_logger::Env;
 use glam::Vec3;
 use indicatif::{MultiProgress, ProgressBar};
@@ -12,7 +12,7 @@ use log::info;
 
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
-pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>) -> Vec3 {
+pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
     if let Some(record) = world.hit(ray, 0.0, f32::INFINITY) {
         let n = record.normal.normalize();
         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
@@ -24,7 +24,7 @@ pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>) -> Vec3 {
 }
 
 fn render_to_ppm(
-    world: &Vec<Box<dyn Hittable>>,
+    world: &World,
     image_width: u32,
     image_height: u32,
     multi: &MultiProgress,
@@ -90,7 +90,7 @@ fn main() {
     let mut writer = BufWriter::new(file);
 
     // Setup world
-    let world: Vec<Box<dyn Hittable>> = vec![
+    let world: World = vec![
         Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)),
         Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)),
     ];

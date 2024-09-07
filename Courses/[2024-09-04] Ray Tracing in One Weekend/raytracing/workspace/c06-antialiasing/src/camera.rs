@@ -4,13 +4,13 @@ use std::{
     path::Path,
 };
 
-use crate::{log::logger, Hittable, Ray};
+use crate::{log::logger, Hittable, Ray, World};
 use ::log::info;
 use glam::Vec3;
 use indicatif::ProgressBar;
 use rand::random;
 
-pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>) -> Vec3 {
+pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
     if let Some(record) = world.hit(ray, 0.0..f32::INFINITY) {
         let n = record.normal.normalize();
         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
@@ -79,7 +79,7 @@ impl Camera {
 impl Camera {
     pub fn render_to_ppm(
         &self,
-        world: &Vec<Box<dyn Hittable>>,
+        world: &World,
         output_width: u32,
         path: impl AsRef<Path>,
     ) {
