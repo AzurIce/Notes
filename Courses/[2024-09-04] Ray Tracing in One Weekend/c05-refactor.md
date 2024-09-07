@@ -93,7 +93,7 @@ impl Camera {
 impl Camera {
     pub fn render_to_ppm(
         &self,
-        world: &Vec<Box<dyn Hittable>>,
+        world: &World,
         output_width: u32,
         path: impl AsRef<Path>,
     ) {
@@ -205,7 +205,7 @@ const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
 fn main() {
     // Setup world
-    let world: Vec<Box<dyn Hittable>> = vec![
+    let world: World = vec![
         Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)),
         Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)),
     ];
