@@ -99,7 +99,7 @@ impl Camera {
             .unwrap();
 
         let multi = logger().multi();
-        let pb = multi.add(ProgressBar::new(output_height as u64));
+        let pb = multi.add(ProgressBar::new((output_height * output_width) as u64));
         for j in 0..output_height {
             for i in 0..output_width {
                 let pixel_center =
