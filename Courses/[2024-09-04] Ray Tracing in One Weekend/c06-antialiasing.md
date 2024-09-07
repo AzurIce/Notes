@@ -1,5 +1,7 @@
 # c06-antialiasing
 
+反走样
+
 <img src="./assets/image-20240907001025528.png" alt="image-20240907001025528" style="zoom:40%;" /><img src="./assets/image-20240907003819882.png" alt="image-20240907003819882" style="zoom:40%;" />
 
 ---

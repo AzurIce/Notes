@@ -1,10 +1,8 @@
 # c07-diffuse-materials
 
-漫反射材质、image 图像编码 + rayon 并行
+等概率漫反射、朗伯分布漫反射、image 图像编码 + rayon 并行
 
 <img src="./assets/image_c07-simple.png" alt="image_c07" style="zoom:67%;" /><img src="./assets/image_c07.png" alt="image_c07" style="zoom:67%;" />
-
-
 
 ---
 
