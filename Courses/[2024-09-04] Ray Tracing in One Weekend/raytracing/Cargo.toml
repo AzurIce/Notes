@@ -14,6 +14,7 @@ members = [
     "workspace/c05-camera",
     "workspace/c06-antialiasing",
     "workspace/c07-diffuse-materials",
+    "workspace/c08-gamma-correction",
 ]
 
 [workspace.dependencies]
