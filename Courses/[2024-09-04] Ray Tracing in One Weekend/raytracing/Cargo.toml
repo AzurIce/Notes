@@ -16,6 +16,7 @@ members = [
     "workspace/c07-diffuse-materials",
     "workspace/c08-gamma-correction",
     "workspace/c09-metal",
+    "workspace/c10-dielectric",
 ]
 
 [workspace.dependencies]

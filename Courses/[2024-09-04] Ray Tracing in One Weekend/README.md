@@ -15,7 +15,7 @@
 
 - [c01-ppm-image](./c01-ppm-image.md)
 
-    ppm 图像格式，以及 Log 和进度条
+    ppm 图像格式、Log 和进度条
 
     ![image_c01](./assets/image_c01.png)
 - [c02-ray](./c02-ray.md)
@@ -54,7 +54,11 @@
     ![image_c08](./assets/image_c08.png)
 - [c09-metal](./c09-metal.md)
 
-    `Material` Trait，以及 Lambertian 和 Metal 材质
+    `Material` Trait、Lambertian 和 Metal 材质
 
     ![image_c09](./assets/image_c09.png)
+- [c10-dielectric](./c10-dielectric.md)
 
+    Dielectric 材质、折射、全反射、Schlick 近似
+
+    ![image_c10](./assets/image_c10.png)

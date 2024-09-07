@@ -293,6 +293,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "c10-dielectric"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "glam",
+ "image",
+ "indicatif",
+ "indicatif-log-bridge",
+ "log",
+ "rand",
+ "rayon",
+]
+
+[[package]]
 name = "cc"
 version = "1.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"

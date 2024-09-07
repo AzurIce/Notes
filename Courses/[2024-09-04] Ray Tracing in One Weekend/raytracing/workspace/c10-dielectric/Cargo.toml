@@ -1,0 +1,14 @@
+[package]
+name = "c10-dielectric"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+glam.workspace = true
+env_logger.workspace = true
+indicatif.workspace = true
+indicatif-log-bridge.workspace = true
+log.workspace = true
+rand.workspace = true
+image.workspace = true
+rayon.workspace = true
