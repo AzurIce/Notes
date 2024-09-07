@@ -307,6 +307,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "c11-camera-pro"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "glam",
+ "image",
+ "indicatif",
+ "indicatif-log-bridge",
+ "log",
+ "rand",
+ "rayon",
+]
+
+[[package]]
 name = "cc"
 version = "1.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -17,6 +17,7 @@ members = [
     "workspace/c08-gamma-correction",
     "workspace/c09-metal",
     "workspace/c10-dielectric",
+    "workspace/c11-camera-pro",
 ]
 
 [workspace.dependencies]
