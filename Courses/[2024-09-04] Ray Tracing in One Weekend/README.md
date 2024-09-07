@@ -47,3 +47,8 @@
     等概率漫反射、朗伯分布漫反射、image 图像编码 + rayon 并行
 
     ![image_c07](./assets/image_c07.png)
+- [c08-gamma-correction](./c08-gamma-correction.md)
+
+    伽马校正
+
+    ![image_c08](./assets/image_c08.png)
