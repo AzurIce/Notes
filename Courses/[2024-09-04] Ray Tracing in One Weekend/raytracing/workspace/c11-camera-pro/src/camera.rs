@@ -32,6 +32,8 @@ pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
 
 pub struct Camera {
     focal_length: f32,
+    fov: f32,
+
     aspect_ratio: f32,
     viewport_height: f32,
     viewport_width: f32,
@@ -43,12 +45,19 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         let aspect_ratio = 16.0 / 9.0;
-        let viewport_height = 2.0;
+        let focal_length = 1.0;
+        let fov = 90.0f32;
+
+        let theta = fov.to_radians();
+        let h = focal_length * (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
         let viewport_width = viewport_height * aspect_ratio;
 
         Self {
-            focal_length: 1.0,
             aspect_ratio,
+            focal_length,
+            fov,
+
             viewport_height,
             viewport_width,
             camera_center: Vec3::ZERO,
@@ -89,6 +98,29 @@ impl Camera {
     pub fn max_depth(mut self, max_depth: u32) -> Self {
         self.max_depth = max_depth;
         self
+    }
+
+    pub fn fov(mut self, fov: f32) -> Self {
+        self.fov = fov;
+        self
+    }
+
+    pub fn set_focal_length(&mut self, focal_length: f32) {
+        self.focal_length = focal_length;
+
+        let theta = self.fov.to_radians();
+        let h = focal_length * (theta / 2.0).tan();
+        self.viewport_height = 2.0 * h;
+        self.viewport_width = self.viewport_height * self.aspect_ratio;
+    }
+
+    pub fn set_fov(&mut self, fov: f32) {
+        self.fov = fov;
+
+        let theta = fov.to_radians();
+        let h = self.focal_length * (theta / 2.0).tan();
+        self.viewport_height = 2.0 * h;
+        self.viewport_width = self.viewport_height * self.aspect_ratio;
     }
 }
 
