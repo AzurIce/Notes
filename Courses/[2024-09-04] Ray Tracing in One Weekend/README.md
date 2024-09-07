@@ -52,3 +52,9 @@
     伽马校正
 
     ![image_c08](./assets/image_c08.png)
+- [c09-metal](./c09-metal.md)
+
+    `Material` Trait，以及 Lambertian 和 Metal 材质
+
+    ![image_c09](./assets/image_c09.png)
+

@@ -13,6 +13,7 @@ fn main() {
 
     // Image
     let image_width = 400;
+    // let image_width = 1280;
     let image_height = (image_width as f32 / ASPECT_RATIO) as usize;
     // let (image_width, image_height) = (400, 225);
     let aspect_ratio = image_width as f32 / image_height as f32; // real aspect ratio

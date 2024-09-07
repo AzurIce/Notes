@@ -15,6 +15,7 @@ members = [
     "workspace/c06-antialiasing",
     "workspace/c07-diffuse-materials",
     "workspace/c08-gamma-correction",
+    "workspace/c09-metal",
 ]
 
 [workspace.dependencies]
@@ -26,3 +27,9 @@ log = "0.4.22"
 rand = "0.8.5"
 image = { version = "0.25.2", features = ["rayon"] }
 rayon = "1.10.0"
+
+[profile.dev]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
