@@ -18,6 +18,7 @@ members = [
     "workspace/c09-metal",
     "workspace/c10-dielectric",
     "workspace/c11-camera-pro",
+    "workspace/c12-defocus-blur",
 ]
 
 [workspace.dependencies]
