@@ -5,13 +5,12 @@
 > [!NOTE]
 > 
 > 本书内容为 [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) 的 Rust 实现
-> 
-> 内容仍在更新中
 
 ![image_c06](./assets/image_c06.png)
 ![image_c07](./assets/image_c07.png)
 ![image_c10](./assets/image_c10.png)
 ![image_c12](./assets/image_c12.png)
+![image](./assets/image.png)
 
 ## 目录
 
@@ -77,3 +76,6 @@
 
     ![image_c12](./assets/image_c12.png)
 
+- 最终场景（`raytracing/src`）
+
+    ![image](./assets/image.png)

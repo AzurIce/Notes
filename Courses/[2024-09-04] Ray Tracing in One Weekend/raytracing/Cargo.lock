@@ -1060,6 +1060,16 @@ dependencies = [
 [[package]]
 name = "raytracing"
 version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "glam",
+ "image",
+ "indicatif",
+ "indicatif-log-bridge",
+ "log",
+ "rand",
+ "rayon",
+]
 
 [[package]]
 name = "regex"

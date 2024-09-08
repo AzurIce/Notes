@@ -16,7 +16,7 @@ $$
 
 其中，$\eta$ 和 $\eta'$ 分别是两种介质的折射率，$\theta$ 和 $\theta'$ 分别是入射角和折射角。
 
-![alt text](./assets/image.png)
+![alt text](./assets/image-1.png)
 
 考虑一条光线 $\mathbf{R}$ 经过折射后得到光线 $\mathbf{R'}$。可以将 $\mathbf{R}$ 按照折射法线 $\mathbf{n}'$ 方向和垂直折射法线方向分解为两个分量：
 
