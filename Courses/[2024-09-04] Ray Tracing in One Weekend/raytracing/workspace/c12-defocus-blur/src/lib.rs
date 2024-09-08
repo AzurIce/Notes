@@ -8,6 +8,7 @@ use std::{ops::Range, sync::Arc};
 use glam::Vec3;
 use material::Material;
 
+#[derive(Debug)]
 pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,

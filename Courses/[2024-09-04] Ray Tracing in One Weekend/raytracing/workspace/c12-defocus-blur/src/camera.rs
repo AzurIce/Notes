@@ -1,7 +1,11 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{path::Path, time::Instant};
 
-use crate::{log::logger, utils::linear_to_gamma, Hittable, Ray, World};
+use crate::{
+    log::logger,
+    utils::{linear_to_gamma, random_in_unit_disk},
+    Hittable, Ray, World,
+};
 use ::log::info;
 use glam::Vec3;
 use image::{ImageBuffer, Rgb};
@@ -31,12 +35,9 @@ pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
 }
 
 pub struct Camera {
-    focal_length: f32,
+    // focal_length: f32,
     fov: f32,
-
     aspect_ratio: f32,
-    viewport_height: f32,
-    viewport_width: f32,
 
     pos: Vec3,
     look_at: Vec3,
@@ -44,30 +45,32 @@ pub struct Camera {
 
     samples_per_pixel: u32,
     max_depth: u32,
+    defocus_angle: f32,
+    focus_distance: f32,
 }
 
 impl Default for Camera {
     fn default() -> Self {
         let aspect_ratio = 16.0 / 9.0;
-        let focal_length = 1.0;
+        // let focal_length = 1.0;
         let fov = 90.0f32;
 
-        let theta = fov.to_radians();
-        let h = focal_length * (theta / 2.0).tan();
-        let viewport_height = 2.0 * h;
-        let viewport_width = viewport_height * aspect_ratio;
+        let pos = Vec3::ZERO;
+        let look_at = Vec3::NEG_Z;
+        let up = Vec3::Y;
+
+        let defocus_angle = 0.0;
+        let focus_distance = 10.0;
 
         Self {
             aspect_ratio,
-            focal_length,
+            // focal_length,
             fov,
-
-            viewport_height,
-            viewport_width,
-
-            pos: Vec3::ZERO,
-            look_at: Vec3::new(0.0, 0.0, -1.0),
-            up: Vec3::new(0.0, 1.0, 0.0),
+            pos,
+            look_at,
+            up,
+            defocus_angle,
+            focus_distance,
 
             samples_per_pixel: 100,
             max_depth: 50,
@@ -77,13 +80,8 @@ impl Default for Camera {
 
 impl Camera {
     pub fn new(aspect_ratio: f32) -> Self {
-        let viewport_height = 2.0;
-        let viewport_width = viewport_height * aspect_ratio;
-
         Camera {
             aspect_ratio,
-            viewport_height,
-            viewport_width,
             ..Default::default()
         }
     }
@@ -103,8 +101,19 @@ impl Camera {
         self
     }
 
-    pub fn focal_length(mut self, focal_length: f32) -> Self {
-        self.focal_length = focal_length;
+    pub fn defocus_angle(mut self, defocus_angle: f32) -> Self {
+        self.defocus_angle = defocus_angle;
+        self
+    }
+
+    pub fn focus_distance(mut self, focus_distance: f32) -> Self {
+        self.focus_distance = focus_distance;
+        self
+    }
+
+    pub fn focus_to(mut self, target: Vec3) -> Self {
+        self.look_at = target;
+        self.focus_distance = self.pos.distance(target);
         self
     }
 
@@ -123,28 +132,13 @@ impl Camera {
         self
     }
 
-    pub fn set_focal_length(&mut self, focal_length: f32) -> &mut Self {
-        self.focal_length = focal_length;
-
-        let theta = self.fov.to_radians();
-        let h = focal_length * (theta / 2.0).tan();
-        self.viewport_height = 2.0 * h;
-        self.viewport_width = self.viewport_height * self.aspect_ratio;
+    pub fn set_defocus_angle(&mut self, defocus_angle: f32) -> &mut Self {
+        self.defocus_angle = defocus_angle;
         self
     }
 
-    pub fn set_fov(&mut self, fov: f32) -> &mut Self {
-        self.fov = fov;
-
-        let theta = fov.to_radians();
-        let h = self.focal_length * (theta / 2.0).tan();
-        self.viewport_height = 2.0 * h;
-        self.viewport_width = self.viewport_height * self.aspect_ratio;
-        self
-    }
-
-    pub fn set_pos(&mut self, pos: Vec3) -> &mut Self {
-        self.pos = pos;
+    pub fn set_focus_distance(&mut self, focus_distance: f32) -> &mut Self {
+        self.focus_distance = focus_distance;
         self
     }
 
@@ -157,6 +151,10 @@ impl Camera {
         self.up = up.normalize();
         self
     }
+
+    pub fn focus_point(&self) -> Vec3 {
+        self.pos + self.focus_distance * (self.look_at - self.pos).normalize()
+    }
 }
 
 impl Camera {
@@ -165,17 +163,24 @@ impl Camera {
         let right = self.up.cross(back).normalize();
         let up = back.cross(right).normalize();
 
-        let viewport_u = self.viewport_width * right;
-        let viewport_v = -self.viewport_height * up;
+        let h = self.focus_distance * (self.fov / 2.0).to_radians().tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = viewport_height * self.aspect_ratio;
+
+        let viewport_u = viewport_width * right;
+        let viewport_v = -viewport_height * up;
 
         let output_height = (output_width as f32 / self.aspect_ratio) as u32;
         let pixel_delta_u = viewport_u / output_width as f32;
         let pixel_delta_v = viewport_v / output_height as f32;
 
-        let viewport_upper_left = self.pos
-            - self.focal_length * back
-            - viewport_u / 2.0
-            - viewport_v / 2.0;
+        let defocus_radius = self.focus_distance * (self.defocus_angle / 2.0).to_radians().tan();
+        println!("defocus_radius: {}", defocus_radius);
+        let defocus_disk_u = defocus_radius * right;
+        let defocus_disk_v = -defocus_radius * up;
+
+        let viewport_upper_left =
+            self.pos - self.focus_distance * back - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         let calc_pixel_color = |x: u32, y: u32| {
@@ -191,10 +196,13 @@ impl Camera {
                         0.0,
                     );
 
-                    let ray = Ray::new(
-                        self.pos,
-                        pixel_center + rand_offset - self.pos,
-                    );
+                    let ray_origin = if self.defocus_angle <= f32::EPSILON {
+                        self.pos
+                    } else {
+                        let rand_vec = random_in_unit_disk();
+                        self.pos + (defocus_disk_u * rand_vec.x) + (defocus_disk_v * rand_vec.y)
+                    };
+                    let ray = Ray::new(ray_origin, pixel_center + rand_offset - ray_origin);
 
                     ray_color(&ray, world, self.max_depth)
                 })

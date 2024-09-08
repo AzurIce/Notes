@@ -56,6 +56,35 @@ fn main() {
         )),
     ];
 
+    // From the book
+    // let world: World = vec![
+    //     Box::new(Sphere::new(
+    //         Vec3::new(0.0, -100.5, -1.0),
+    //         100.0,
+    //         Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0))),
+    //     )),
+    //     Box::new(Sphere::new(
+    //         Vec3::new(0.0, 0.0, -1.2),
+    //         0.5,
+    //         Box::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5))),
+    //     )),
+    //     Box::new(Sphere::new(
+    //         Vec3::new(-1.0, 0.0, -1.0),
+    //         0.5,
+    //         Box::new(Dielectric::new(1.5)),
+    //     )),
+    //     Box::new(Sphere::new(
+    //         Vec3::new(-1.0, 0.0, -1.0),
+    //         0.4,
+    //         Box::new(Dielectric::new(1.0 / 1.5)),
+    //     )),
+    //     Box::new(Sphere::new(
+    //         Vec3::new(1.0, 0.0, -1.0),
+    //         0.5,
+    //         Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2)).fuzz(1.0)),
+    //     )),
+    // ];
+
     // Image
     // let image_width = 400;
     let image_width = 1280;
@@ -63,15 +92,13 @@ fn main() {
     // let (image_width, image_height) = (400, 225);
     let aspect_ratio = image_width as f32 / image_height as f32; // real aspect ratio
 
-    let mut camera = Camera::new(aspect_ratio)
-        .pos(Vec3::new(-1.0, 1.0, 1.0))
-        .look_at(Vec3::new(0.1, 0.03, -0.64));
+    let camera = Camera::new(aspect_ratio)
+        .fov(30.0)
+        .pos(Vec3::new(0.6, 0.3, 1.3))
+        .look_at(Vec3::new(0.2, 0.0, -0.64))
+        .focus_distance(1.7)
+        .defocus_angle(10.0);
+    println!("camera focus at: {}", camera.focus_point());
 
-    camera.render_to_path(&world, image_width, "image_c11-fov90.png");
-
-    camera.set_fov(30.0);
-    camera.render_to_path(&world, image_width, "image_c11-fov30.png");
-
-    camera.set_fov(150.0);
-    camera.render_to_path(&world, image_width, "image_c11-fov150.png");
+    camera.render_to_path(&world, image_width, "image_c12.png");
 }

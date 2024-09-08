@@ -10,6 +10,8 @@
 
 ![image_c06](./assets/image_c06.png)
 ![image_c07](./assets/image_c07.png)
+![image_c10](./assets/image_c10.png)
+![image_c12](./assets/image_c12.png)
 
 ## 目录
 
@@ -71,7 +73,7 @@
     ![image_c11-fov150](./assets/image_c11-fov150.png)
 - [c12-defocus-blur](./c12-defocus-blur.md)
 
-    景深模糊
+    失焦模糊
 
     ![image_c12](./assets/image_c12.png)
 
