@@ -104,7 +104,7 @@ impl Camera {
     }
 
     pub fn focal_length(mut self, focal_length: f32) -> Self {
-        self.focal_length = focal_length;
+        self.set_focal_length(focal_length);
         self
     }
 
@@ -119,7 +119,7 @@ impl Camera {
     }
 
     pub fn fov(mut self, fov: f32) -> Self {
-        self.fov = fov;
+        self.set_fov(fov);
         self
     }
 
