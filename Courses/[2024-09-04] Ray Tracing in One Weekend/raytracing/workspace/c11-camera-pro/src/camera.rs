@@ -33,10 +33,7 @@ pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
 pub struct Camera {
     focal_length: f32,
     fov: f32,
-
     aspect_ratio: f32,
-    viewport_height: f32,
-    viewport_width: f32,
 
     pos: Vec3,
     look_at: Vec3,
@@ -52,18 +49,10 @@ impl Default for Camera {
         let focal_length = 1.0;
         let fov = 90.0f32;
 
-        let theta = fov.to_radians();
-        let h = focal_length * (theta / 2.0).tan();
-        let viewport_height = 2.0 * h;
-        let viewport_width = viewport_height * aspect_ratio;
-
         Self {
             aspect_ratio,
             focal_length,
             fov,
-
-            viewport_height,
-            viewport_width,
 
             pos: Vec3::ZERO,
             look_at: Vec3::new(0.0, 0.0, -1.0),
@@ -77,13 +66,8 @@ impl Default for Camera {
 
 impl Camera {
     pub fn new(aspect_ratio: f32) -> Self {
-        let viewport_height = 2.0;
-        let viewport_width = viewport_height * aspect_ratio;
-
         Camera {
             aspect_ratio,
-            viewport_height,
-            viewport_width,
             ..Default::default()
         }
     }
@@ -104,7 +88,7 @@ impl Camera {
     }
 
     pub fn focal_length(mut self, focal_length: f32) -> Self {
-        self.set_focal_length(focal_length);
+        self.focal_length = focal_length;
         self
     }
 
@@ -119,27 +103,17 @@ impl Camera {
     }
 
     pub fn fov(mut self, fov: f32) -> Self {
-        self.set_fov(fov);
-        self
-    }
-
-    pub fn set_focal_length(&mut self, focal_length: f32) -> &mut Self {
-        self.focal_length = focal_length;
-
-        let theta = self.fov.to_radians();
-        let h = focal_length * (theta / 2.0).tan();
-        self.viewport_height = 2.0 * h;
-        self.viewport_width = self.viewport_height * self.aspect_ratio;
+        self.fov = fov;
         self
     }
 
     pub fn set_fov(&mut self, fov: f32) -> &mut Self {
         self.fov = fov;
+        self
+    }
 
-        let theta = fov.to_radians();
-        let h = self.focal_length * (theta / 2.0).tan();
-        self.viewport_height = 2.0 * h;
-        self.viewport_width = self.viewport_height * self.aspect_ratio;
+    pub fn set_focal_length(&mut self, focal_length: f32) -> &mut Self {
+        self.focal_length = focal_length;
         self
     }
 
@@ -165,8 +139,11 @@ impl Camera {
         let right = self.up.cross(back).normalize();
         let up = back.cross(right).normalize();
 
-        let viewport_u = self.viewport_width * right;
-        let viewport_v = -self.viewport_height * up;
+        let h = self.focal_length * (self.fov / 2.0).to_radians().tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = viewport_height * self.aspect_ratio;
+        let viewport_u = viewport_width * right;
+        let viewport_v = -viewport_height * up;
 
         let output_height = (output_width as f32 / self.aspect_ratio) as u32;
         let pixel_delta_u = viewport_u / output_width as f32;
