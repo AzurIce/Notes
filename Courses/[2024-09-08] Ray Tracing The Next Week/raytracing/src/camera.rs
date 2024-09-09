@@ -4,7 +4,7 @@ use std::{path::Path, time::Instant};
 use crate::{
     log::logger,
     utils::{linear_to_gamma, random_in_unit_disk},
-    Hittable, Ray, World,
+    Hittable, Ray,
 };
 use ::log::info;
 use glam::Vec3;
@@ -12,7 +12,7 @@ use image::{ImageBuffer, Rgb};
 use indicatif::ProgressBar;
 use rand::random;
 
-pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
+pub fn ray_color<W: Hittable>(ray: &Ray, world: &W, depth: u32) -> Vec3 {
     if depth <= 0 {
         return Vec3::ZERO;
     }
@@ -21,13 +21,14 @@ pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
 
     // use 0.001 to avoid shadow acne
     if let Some(record) = world.hit(ray, 0.001..f32::INFINITY) {
-        return record
-            .material
-            .scatter(ray, &record)
-            .map(|(attenuation, scattered_ray)| {
-                attenuation * ray_color(&scattered_ray, world, depth - 1)
-            })
-            .unwrap_or(Vec3::ZERO);
+        if let Some(material) = &record.material {
+            return material
+                .scatter(ray, &record)
+                .map(|(attenuation, scattered_ray)| {
+                    attenuation * ray_color(&scattered_ray, world, depth - 1)
+                })
+                .unwrap_or(Vec3::ZERO);
+        }
     }
 
     let a = 0.5 * (unit_direction.y + 1.0); // 从 [-1, 1] 映射到 [0, 1]
@@ -158,7 +159,12 @@ impl Camera {
 }
 
 impl Camera {
-    pub fn render_to_path(&self, world: &World, output_width: u32, path: impl AsRef<Path>) {
+    pub fn render_to_path<W: Hittable + Send + Sync>(
+        &self,
+        world: &W,
+        output_width: u32,
+        path: impl AsRef<Path>,
+    ) {
         let back = (self.pos - self.look_at).normalize();
         let right = self.up.cross(back).normalize();
         let up = back.cross(right).normalize();

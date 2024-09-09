@@ -1,12 +1,14 @@
-pub mod log;
 pub mod camera;
-pub mod utils;
+pub mod log;
 pub mod material;
+pub mod utils;
+pub mod world;
 
 use std::{ops::Range, sync::Arc};
 
 use glam::Vec3;
 use material::Material;
+use world::bvh::{Aabb, HasAabb};
 
 #[derive(Debug)]
 pub struct Ray {
@@ -30,13 +32,14 @@ pub struct HitRecord {
     pub normal: Vec3,
     pub t: f32,
     pub front_face: bool,
-    pub material: Arc<Box<dyn Material + Send + Sync>>,
+    pub material: Option<Arc<Box<dyn Material + Send + Sync>>>,
 }
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord>;
 }
 
+#[derive(Clone)]
 pub struct Sphere {
     center: Vec3,
     radius: f32,
@@ -46,7 +49,11 @@ pub struct Sphere {
 impl Sphere {
     pub fn new(center: Vec3, radius: f32, material: Box<dyn Material + Send + Sync>) -> Self {
         let material = Arc::new(material);
-        Sphere { center, radius, material }
+        Sphere {
+            center,
+            radius,
+            material,
+        }
     }
 }
 
@@ -81,23 +88,16 @@ impl Hittable for Sphere {
             normal,
             t,
             front_face,
-            material: self.material.clone(),
+            material: Some(self.material.clone()),
         })
     }
 }
 
-pub type World = Vec<Box<dyn Hittable + Send + Sync>>;
-
-impl Hittable for World {
-    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
-        let mut closest = t_range.end;
-        let mut hit_record = None;
-        for object in self.iter() {
-            if let Some(record) = object.hit(ray, t_range.start..closest) {
-                closest = record.t;
-                hit_record = Some(record);
-            }
-        }
-        hit_record
+impl HasAabb for Sphere {
+    fn aabb(&self) -> Aabb {
+        Aabb::new(
+            self.center - Vec3::splat(self.radius),
+            self.center + Vec3::splat(self.radius),
+        )
     }
 }

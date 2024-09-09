@@ -3,7 +3,11 @@ use rand::random;
 use raytracing::{
     camera::Camera,
     material::{Dielectric, Lambertian, Material, Metal},
-    Sphere, World,
+    world::{
+        bvh::{AabbHittable, BvhNode},
+        list::List,
+    },
+    Hittable, Sphere,
 };
 
 // Ideal aspect ratio
@@ -11,11 +15,12 @@ const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
 fn main() {
     // Setup world
-    let mut world: World = vec![Box::new(Sphere::new(
+    let mut objects = Vec::new();
+    objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
         Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
-    ))];
+    )));
 
     for a in -11..11 {
         for b in -11..11 {
@@ -38,22 +43,22 @@ fn main() {
                     Box::new(Dielectric::new(1.5))
                 };
 
-                world.push(Box::new(Sphere::new(center, 0.2, material)));
+                objects.push(Box::new(Sphere::new(center, 0.2, material)));
             }
         }
     }
 
-    world.push(Box::new(Sphere::new(
+    objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
         Box::new(Dielectric::new(1.5)),
     )));
-    world.push(Box::new(Sphere::new(
+    objects.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
         Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
     )));
-    world.push(Box::new(Sphere::new(
+    objects.push(Box::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
         Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5)).fuzz(0.0)),
@@ -72,5 +77,19 @@ fn main() {
         .focus_distance(10.0)
         .defocus_angle(0.6);
 
+    // i9-9900k: cost: 419.357666s
+    // let objects = objects
+    //     .into_iter()
+    //     .map(|obj| obj as Box<dyn Hittable + Send + Sync>)
+    //     .collect();
+    // let world = List::from_objects(objects);
+    // camera.render_to_path(&world, image_width, "image.png");
+
+    // i9-9900k: cost: 76.5858159s
+    let objects = objects
+        .into_iter()
+        .map(|obj| obj as Box<dyn AabbHittable + Send + Sync>)
+        .collect();
+    let world = BvhNode::from_objects(objects);
     camera.render_to_path(&world, image_width, "image.png");
 }
