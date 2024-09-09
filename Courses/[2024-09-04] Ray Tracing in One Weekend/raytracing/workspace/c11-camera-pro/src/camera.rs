@@ -1,14 +1,14 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{path::Path, time::Instant};
 
-use crate::{log::logger, utils::linear_to_gamma, Hittable, Ray, World};
+use crate::{log::logger, utils::linear_to_gamma, Hittable, Ray};
 use ::log::info;
 use glam::Vec3;
 use image::{ImageBuffer, Rgb};
 use indicatif::ProgressBar;
 use rand::random;
 
-pub fn ray_color(ray: &Ray, world: &World, depth: u32) -> Vec3 {
+pub fn ray_color<W: Hittable>(ray: &Ray, world: &W, depth: u32) -> Vec3 {
     if depth <= 0 {
         return Vec3::ZERO;
     }
@@ -134,7 +134,7 @@ impl Camera {
 }
 
 impl Camera {
-    pub fn render_to_path(&self, world: &World, output_width: u32, path: impl AsRef<Path>) {
+    pub fn render_to_path<W: Hittable + Send + Sync>(&self, world: &W, output_width: u32, path: impl AsRef<Path>) {
         let back = (self.pos - self.look_at).normalize();
         let right = self.up.cross(back).normalize();
         let up = back.cross(right).normalize();

@@ -91,9 +91,9 @@ impl Camera {
 }
 
 impl Camera {
-    pub fn render_to_ppm(
+    pub fn render_to_ppm<W: Hittable>(
         &self,
-        world: &World,
+        world: &W,
         output_width: u32,
         path: impl AsRef<Path>,
     ) {
@@ -173,8 +173,6 @@ impl Hittable for Sphere {
     }
 }
 ```
-
-
 
 ```rust
 impl Hittable for World {

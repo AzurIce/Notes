@@ -22,9 +22,9 @@
 
 ```rust
 impl Camera {
-    pub fn render_to_ppm(
+    pub fn render_to_ppm<W: Hittable>(
         &self,
-        world: &Vec<Box<dyn Hittable>>,
+        world: &W>,
         output_width: u32,
         path: impl AsRef<Path>,
     ) {

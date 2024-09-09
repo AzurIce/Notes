@@ -96,12 +96,13 @@ impl Hittable for World {
 对应的还需要修改 `ray_color` 函数：
 
 ```diff
-pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
+- pub fn ray_color(ray: &Ray) -> Vec3 {
 -     let t = hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray);
 -     if t > 0.0 {
 -         let n = (ray.at(t) - Vec3::new(0.0, 0.0, -1.0)).normalize();
 -         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
 -     }
++ pub fn ray_color<W: Hittable>(ray: &Ray, world: &W) -> Vec3 {
 +     if let Some(record) = world.hit(ray, 0.0, f32::INFINITY) {
 +         let n = record.normal.normalize();
 +         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
@@ -135,8 +136,8 @@ fn main() {
 `render_to_ppm` 是封装后的渲染的代码：
 
 ```rust
-fn render_to_ppm(
-    world: &World,
+fn render_to_ppm<W: Hittable(
+    world: &W,
     image_width: u32,
     image_height: u32,
     multi: &MultiProgress,

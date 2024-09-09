@@ -12,7 +12,7 @@ use log::info;
 
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
-pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
+pub fn ray_color<W: Hittable>(ray: &Ray, world: &W) -> Vec3 {
     if let Some(record) = world.hit(ray, 0.0, f32::INFINITY) {
         let n = record.normal.normalize();
         return 0.5 * (Vec3::new(n.x, n.y, n.z) + 1.0);
@@ -23,8 +23,8 @@ pub fn ray_color(ray: &Ray, world: &World) -> Vec3 {
     (1.0 - a) * Vec3::new(1.0, 1.0, 1.0) + a * Vec3::new(0.5, 0.7, 1.0)
 }
 
-fn render_to_ppm(
-    world: &World,
+fn render_to_ppm<W: Hittable>(
+    world: &W,
     image_width: u32,
     image_height: u32,
     multi: &MultiProgress,

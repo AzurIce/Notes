@@ -48,8 +48,8 @@ pub fn random_on_hemisphere(normal: Vec3) -> Vec3 {
 那么 `ray_color` 函数就变为了递归的，所以还要为 `Camera` 添加一个 `max_depth` 来限制递归深度：
 
 ```diff
-- pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>) -> Vec3 {
-+ pub fn ray_color(ray: &Ray, world: &Vec<Box<dyn Hittable>>, depth: u32) -> Vec3 {
+- pub fn ray_color<W: Hittable>(ray: &Ray, world: &W) -> Vec3 {
++ pub fn ray_color<W: Hittable>(ray: &Ray, world: &W, depth: u32) -> Vec3 {
 + 		if depth <= 0 {
 + 				return Vec3::ZERO;
 + 		}
@@ -106,11 +106,18 @@ image.save(&path).unwrap();
 info!("cost: {:?}", t.elapsed());
 ```
 
-对应的，需要将 `World` 修改为 `Send + Sync` 的：
+对应的，需要在一些地方添加 `Send + Sync`：
 
 ```rust
 pub type World = Vec<Box<dyn Hittable + Send + Sync>>;
 ```
+
+```rust
+impl Camera{
+    pub fn render_to_path<W: Hittable + Send + Sync>(&self, world: &W, output_width: u32, path: impl AsRef<Path>) {
+```
+
+
 
 此外在 `calc_pixel_color` 中还可以进一步对每一次采样进行并行化：
 
