@@ -27,6 +27,16 @@ impl Aabb {
     pub fn union(&self, other: &Aabb) -> Aabb {
         Aabb::new(self.min.min(other.min), self.max.max(other.max))
     }
+
+    pub fn longest_axis(&self) -> usize {
+        let x = self.max.x - self.min.x;
+        let y = self.max.y - self.min.y;
+        let z = self.max.z - self.min.z;
+        let max = x.max(y).max(z);
+
+        let arr = [x, y, z];
+        arr.iter().position(|&x| x == max).unwrap()
+    }
 }
 
 impl Hittable for Aabb {
@@ -97,7 +107,12 @@ impl HasAabb for BvhNode {
 
 impl BvhNode {
     pub fn from_objects(mut objects: Vec<Box<dyn AabbHittable + Send + Sync>>) -> Self {
-        let axis = random::<usize>() % 3;
+        let aabb = objects
+            .iter()
+            .map(|obj| obj.aabb())
+            .reduce(|a, b| a.union(&b))
+            .unwrap();
+        let axis = aabb.longest_axis();
         objects.sort_by(|a, b| a.aabb().min[axis].partial_cmp(&b.aabb().min[axis]).unwrap());
 
         return if objects.len() == 1 {
@@ -108,7 +123,7 @@ impl BvhNode {
                 objects.drain(..objects.len() / 2).collect(),
             ));
             let right = Box::new(BvhNode::from_objects(objects));
-            let aabb = left.aabb().union(&right.aabb());
+            // let aabb = left.aabb().union(&right.aabb());
             BvhNode::Node { left, right, aabb }
         };
     }

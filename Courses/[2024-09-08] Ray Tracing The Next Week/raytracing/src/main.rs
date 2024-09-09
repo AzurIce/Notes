@@ -85,7 +85,8 @@ fn main() {
     // let world = List::from_objects(objects);
     // camera.render_to_path(&world, image_width, "image.png");
 
-    // i9-9900k: cost: 76.5858159s
+    // i9-9900k: ramdom axis cost: 76.5858159s
+    // i9-9900k: longest axis cost: 69.4391338s
     let objects = objects
         .into_iter()
         .map(|obj| obj as Box<dyn AabbHittable + Send + Sync>)

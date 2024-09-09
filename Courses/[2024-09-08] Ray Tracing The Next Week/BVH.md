@@ -260,3 +260,51 @@ fn main() {
 }
 ```
 
+## 五、更进一步的优化
+
+在构造 BVH 时与其选择随机的轴进行划分，不如选取最长的轴进行划分：
+
+```rust
+impl Aaab {
+    // ...
+    
+    pub fn longest_axis(&self) -> usize {
+        let x = self.max.x - self.min.x;
+        let y = self.max.y - self.min.y;
+        let z = self.max.z - self.min.z;
+        let max = x.max(y).max(z);
+
+        let arr = [x, y, z];
+        arr.iter().position(|&x| x == max).unwrap()
+    }
+}
+```
+
+```diff
+impl BvhNode {
+    pub fn from_objects(mut objects: Vec<Box<dyn AabbHittable + Send + Sync>>) -> Self {
+-         let axis = random::<f32>() % 3;
++         let aabb = objects
++             .iter()
++             .map(|obj| obj.aabb())
++             .reduce(|a, b| a.union(&b))
++             .unwrap();
++         let axis = aabb.longest_axis();
+        objects.sort_by(|a, b| a.aabb().min[axis].partial_cmp(&b.aabb().min[axis]).unwrap());
+
+        return if objects.len() == 1 {
+            let object = objects.remove(0);
+            BvhNode::Leaf(object)
+        } else {
+            let left = Box::new(BvhNode::from_objects(
+                objects.drain(..objects.len() / 2).collect(),
+            ));
+            let right = Box::new(BvhNode::from_objects(objects));
+-             let aabb = left.aabb().union(&right.aabb());
+            BvhNode::Node { left, right, aabb }
+        };
+    }
+}
+```
+
+耗时 69.4391338s，稍微快了一点。
