@@ -29,7 +29,7 @@ impl Material for Lambertian {
         }
 
         let scattered_ray = Ray::new(record.point, scatter_direction);
-        let attenuation = self.texture.value(record.u, record.v);
+        let attenuation = self.texture.value(record.u, record.v, record.point);
         Some((attenuation, scattered_ray))
     }
 }
@@ -60,7 +60,7 @@ impl Material for Metal {
 
         if reflected.dot(record.normal) > 0.0 {
             let scattered_ray = Ray::new(record.point, reflected);
-            let attenuation = self.texture.value(record.u, record.v);
+            let attenuation = self.texture.value(record.u, record.v, record.point);
             Some((attenuation, scattered_ray))
         } else {
             None

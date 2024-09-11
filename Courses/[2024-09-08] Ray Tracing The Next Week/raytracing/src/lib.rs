@@ -50,8 +50,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f32, material: Box<dyn Material + Send + Sync>) -> Self {
-        let material = Arc::new(material);
+    pub fn new(center: Vec3, radius: f32, material: Arc<Box<dyn Material + Send + Sync>>) -> Self {
         Sphere {
             center,
             radius,

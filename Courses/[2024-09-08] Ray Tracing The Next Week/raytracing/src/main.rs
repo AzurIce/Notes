@@ -5,7 +5,7 @@ use rand::random;
 use raytracing::{
     camera::Camera,
     material::{Dielectric, Lambertian, Material, Metal},
-    texture::{SolidColor, Texture},
+    texture::{SolidCheckerTexture, SolidColor, Texture},
     world::{
         bvh::{AabbHittable, BvhNode},
         list::List,
@@ -16,14 +16,17 @@ use raytracing::{
 // Ideal aspect ratio
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 
-fn main() {
-    // Setup world
+fn world() -> impl AabbHittable + Send + Sync {
     let mut objects = Vec::new();
     objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
-        Box::new(Lambertian::new(Arc::new(Box::new(SolidColor::new(
-            Vec3::new(0.5, 0.5, 0.5),
+        Arc::new(Box::new(Lambertian::new(Arc::new(Box::new(
+            SolidCheckerTexture::new(
+                0.5,
+                Arc::new(Box::new(SolidColor::new(Vec3::new(0.2, 0.3, 0.1)))),
+                Arc::new(Box::new(SolidColor::new(Vec3::new(0.9, 0.9, 0.9)))),
+            ),
         ))))),
     )));
 
@@ -50,7 +53,7 @@ fn main() {
                     Box::new(Dielectric::new(1.5))
                 };
 
-                objects.push(Box::new(Sphere::new(center, 0.2, material)));
+                objects.push(Box::new(Sphere::new(center, 0.2, Arc::new(material))));
             }
         }
     }
@@ -58,25 +61,65 @@ fn main() {
     objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
-        Box::new(Dielectric::new(1.5)),
+        Arc::new(Box::new(Dielectric::new(1.5))),
     )));
     objects.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Box::new(Lambertian::new(Arc::new(Box::new(SolidColor::new(
-            Vec3::new(0.4, 0.2, 0.1),
+        Arc::new(Box::new(Lambertian::new(Arc::new(Box::new(
+            SolidColor::new(Vec3::new(0.4, 0.2, 0.1)),
         ))))),
     )));
     objects.push(Box::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
-        Box::new(
+        Arc::new(Box::new(
             Metal::new(Arc::new(Box::new(SolidColor::new(Vec3::new(
                 0.7, 0.6, 0.5,
             )))))
             .fuzz(0.0),
-        ),
+        )),
     )));
+
+    let objects = objects
+        .into_iter()
+        .map(|obj| obj as Box<dyn AabbHittable + Send + Sync>)
+        .collect();
+    BvhNode::from_objects(objects)
+}
+
+fn checkered_spheres() -> impl AabbHittable + Send + Sync {
+    let mut objects = Vec::new();
+
+    let checker_texture: Arc<Box<dyn Texture + Send + Sync>> =
+        Arc::new(Box::new(SolidCheckerTexture::new(
+            0.5,
+            Arc::new(Box::new(SolidColor::new(Vec3::new(0.2, 0.3, 0.1)))),
+            Arc::new(Box::new(SolidColor::new(Vec3::new(0.9, 0.9, 0.9)))),
+        )));
+    let material: Arc<Box<dyn Material + Send + Sync>> =
+        Arc::new(Box::new(Lambertian::new(checker_texture)));
+
+    objects.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -10.0, 0.0),
+        10.0,
+        material.clone(),
+    )));
+    objects.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 10.0, 0.0),
+        10.0,
+        material.clone(),
+    )));
+
+    let objects = objects
+        .into_iter()
+        .map(|obj| obj as Box<dyn AabbHittable + Send + Sync>)
+        .collect();
+    BvhNode::from_objects(objects)
+}
+
+fn main() {
+    // Setup world
 
     // Image
     let image_width = 1280;
@@ -101,10 +144,6 @@ fn main() {
 
     // i9-9900k: ramdom axis cost: 76.5858159s
     // i9-9900k: longest axis cost: 69.4391338s
-    let objects = objects
-        .into_iter()
-        .map(|obj| obj as Box<dyn AabbHittable + Send + Sync>)
-        .collect();
-    let world = BvhNode::from_objects(objects);
+    let world = checkered_spheres();
     camera.render_to_path(&world, image_width, "image.png");
 }
