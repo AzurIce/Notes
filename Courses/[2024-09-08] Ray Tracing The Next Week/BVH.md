@@ -1,5 +1,7 @@
 # Bounding Volume Hierarchies
 
+> [Comparing cd4d7e1...26bc7fc · AzurIce/Notes (github.com)](https://github.com/AzurIce/Notes/compare/cd4d7e1...26bc7fc)
+
 光线与物体的相交判断是光线追踪器中最主要的性能瓶颈，通过遍历每一个的物体并做相应的相交检测是十分耗时的，时间复杂度为 $O(n)$。不难想到通过将问题划分来降低复杂度，而这通常有两种实现方式：
 
 - 划分场景
@@ -241,7 +243,7 @@ impl Hittable for List {
 ```rust
 fn main() {
     // ...
-    
+
     // i9-9900k: cost: 419.357666s
     // let objects = objects
     //     .into_iter()
