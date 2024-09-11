@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use glam::Vec3;
 use rand::random;
 use raytracing::{
     camera::Camera,
     material::{Dielectric, Lambertian, Material, Metal},
+    texture::{SolidColor, Texture},
     world::{
         bvh::{AabbHittable, BvhNode},
         list::List,
@@ -19,7 +22,9 @@ fn main() {
     objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
-        Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
+        Box::new(Lambertian::new(Arc::new(Box::new(SolidColor::new(
+            Vec3::new(0.5, 0.5, 0.5),
+        ))))),
     )));
 
     for a in -11..11 {
@@ -35,10 +40,12 @@ fn main() {
 
                 let albedo = Vec3::new(random::<f32>(), random::<f32>(), random::<f32>())
                     * Vec3::new(random::<f32>(), random::<f32>(), random::<f32>());
+                let texture: Arc<Box<dyn Texture + Send + Sync>> =
+                    Arc::new(Box::new(SolidColor::new(albedo)));
                 let material: Box<dyn Material + Send + Sync> = if choose_mat < 0.8 {
-                    Box::new(Lambertian::new(albedo))
+                    Box::new(Lambertian::new(texture))
                 } else if choose_mat < 0.95 {
-                    Box::new(Metal::new(albedo).fuzz(random::<f32>() * 0.5))
+                    Box::new(Metal::new(texture).fuzz(random::<f32>() * 0.5))
                 } else {
                     Box::new(Dielectric::new(1.5))
                 };
@@ -56,12 +63,19 @@ fn main() {
     objects.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
+        Box::new(Lambertian::new(Arc::new(Box::new(SolidColor::new(
+            Vec3::new(0.4, 0.2, 0.1),
+        ))))),
     )));
     objects.push(Box::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
-        Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5)).fuzz(0.0)),
+        Box::new(
+            Metal::new(Arc::new(Box::new(SolidColor::new(Vec3::new(
+                0.7, 0.6, 0.5,
+            )))))
+            .fuzz(0.0),
+        ),
     )));
 
     // Image

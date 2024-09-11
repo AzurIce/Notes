@@ -3,6 +3,7 @@ pub mod log;
 pub mod material;
 pub mod utils;
 pub mod world;
+pub mod texture;
 
 use std::{ops::Range, sync::Arc};
 
@@ -33,6 +34,8 @@ pub struct HitRecord {
     pub t: f32,
     pub front_face: bool,
     pub material: Option<Arc<Box<dyn Material + Send + Sync>>>,
+    pub u: f32,
+    pub v: f32,
 }
 
 pub trait Hittable {
@@ -89,6 +92,8 @@ impl Hittable for Sphere {
             t,
             front_face,
             material: Some(self.material.clone()),
+            u: 0.0,
+            v: 0.0,
         })
     }
 }

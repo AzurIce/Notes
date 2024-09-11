@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use glam::Vec3;
 use rand::random;
 
 use crate::{
-    utils::{random_in_unit_sphere, reflectance, refract},
-    HitRecord, Ray,
+    texture::Texture, utils::{random_in_unit_sphere, reflectance, refract}, HitRecord, Ray
 };
 
 pub trait Material {
@@ -11,12 +12,12 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    albedo: Vec3,
+    texture: Arc<Box<dyn Texture + Send + Sync>>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Self {
-        Lambertian { albedo }
+    pub fn new(texture: Arc<Box<dyn Texture + Send + Sync>>) -> Self {
+        Lambertian { texture }
     }
 }
 
@@ -28,21 +29,21 @@ impl Material for Lambertian {
         }
 
         let scattered_ray = Ray::new(record.point, scatter_direction);
-        Some((self.albedo, scattered_ray))
+        let attenuation = self.texture.value(record.u, record.v);
+        Some((attenuation, scattered_ray))
     }
 }
 
-#[derive(Default)]
 pub struct Metal {
-    albedo: Vec3,
+    texture: Arc<Box<dyn Texture + Send + Sync>>,
     fuzz: f32,
 }
 
 impl Metal {
-    pub fn new(albedo: Vec3) -> Self {
+    pub fn new(texture: Arc<Box<dyn Texture + Send + Sync>>) -> Self {
         Metal {
-            albedo,
-            ..Default::default()
+            texture,
+            fuzz: 0.0,
         }
     }
 
@@ -59,7 +60,8 @@ impl Material for Metal {
 
         if reflected.dot(record.normal) > 0.0 {
             let scattered_ray = Ray::new(record.point, reflected);
-            Some((self.albedo, scattered_ray))
+            let attenuation = self.texture.value(record.u, record.v);
+            Some((attenuation, scattered_ray))
         } else {
             None
         }

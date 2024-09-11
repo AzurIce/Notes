@@ -64,6 +64,8 @@ impl Hittable for Aabb {
             t: t_min,
             front_face: false,
             material: None,
+            u: 0.0,
+            v: 0.0,
         })
     }
 }
