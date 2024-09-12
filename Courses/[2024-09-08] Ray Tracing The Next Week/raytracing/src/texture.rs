@@ -46,3 +46,28 @@ impl Texture for SolidCheckerTexture {
         }
     }
 }
+
+pub struct CheckerTexture {
+    lng_scale: u32, // 经
+    lat_scale: u32, // 纬
+    even: Arc<Box<dyn Texture + Send + Sync>>,
+    odd: Arc<Box<dyn Texture + Send + Sync>>,
+}
+
+impl CheckerTexture {
+    pub fn new(lng_scale: u32, lat_scale: u32, even: Arc<Box<dyn Texture + Send + Sync>>, odd: Arc<Box<dyn Texture + Send + Sync>>) -> Self {
+        Self { lng_scale, lat_scale, even, odd }
+    }
+}
+
+impl Texture for CheckerTexture {
+    fn value(&self, u: f32, v: f32, point: Vec3) -> Vec3 {
+        let p = [u * self.lng_scale as f32, v * self.lat_scale as f32].map(|v| v.floor() as i32).iter().sum::<i32>();
+
+        if p % 2 == 0 {
+            self.even.value(u, v, point)
+        } else {
+            self.odd.value(u, v, point)
+        }
+    }
+}

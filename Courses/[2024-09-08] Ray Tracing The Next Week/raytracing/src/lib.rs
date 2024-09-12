@@ -5,7 +5,7 @@ pub mod utils;
 pub mod world;
 pub mod texture;
 
-use std::{ops::Range, sync::Arc};
+use std::{f32::consts::PI, ops::Range, sync::Arc};
 
 use glam::Vec3;
 use material::Material;
@@ -57,6 +57,14 @@ impl Sphere {
             material,
         }
     }
+
+    pub fn get_uv(&self, point: Vec3) -> (f32, f32) {
+        let theta = (-point.y).acos();
+        let phi = point.z.atan2(-point.x) + PI;
+        let u = phi / (2.0 * PI);
+        let v = theta / PI;
+        (u, v)
+    }
 }
 
 impl Hittable for Sphere {
@@ -85,14 +93,16 @@ impl Hittable for Sphere {
         let front_face = ray.direction.dot(normal) < 0.0;
         let normal = if front_face { normal } else { -normal };
 
+        let (u, v) = self.get_uv(normal);
+
         Some(HitRecord {
             point,
             normal,
             t,
             front_face,
             material: Some(self.material.clone()),
-            u: 0.0,
-            v: 0.0,
+            u,
+            v,
         })
     }
 }

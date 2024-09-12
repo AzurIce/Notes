@@ -5,7 +5,7 @@ use rand::random;
 use raytracing::{
     camera::Camera,
     material::{Dielectric, Lambertian, Material, Metal},
-    texture::{SolidCheckerTexture, SolidColor, Texture},
+    texture::{CheckerTexture, SolidCheckerTexture, SolidColor, Texture},
     world::{
         bvh::{AabbHittable, BvhNode},
         list::List,
@@ -92,8 +92,9 @@ fn checkered_spheres() -> impl AabbHittable + Send + Sync {
     let mut objects = Vec::new();
 
     let checker_texture: Arc<Box<dyn Texture + Send + Sync>> =
-        Arc::new(Box::new(SolidCheckerTexture::new(
-            0.5,
+        Arc::new(Box::new(CheckerTexture::new(
+            18,
+            8,
             Arc::new(Box::new(SolidColor::new(Vec3::new(0.2, 0.3, 0.1)))),
             Arc::new(Box::new(SolidColor::new(Vec3::new(0.9, 0.9, 0.9)))),
         )));
@@ -128,8 +129,8 @@ fn main() {
 
     let camera = Camera::new(aspect_ratio)
         .samples_per_pixel(500)
-        .fov(20.0)
-        .pos(Vec3::new(13.0, 2.0, 3.0))
+        .fov(90.0)
+        .pos(Vec3::new(13.0, 2.0, 3.0) * 2.0)
         .look_at(Vec3::ZERO)
         .focus_distance(10.0)
         .defocus_angle(0.6);
