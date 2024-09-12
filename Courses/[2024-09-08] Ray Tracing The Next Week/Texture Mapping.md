@@ -1,5 +1,7 @@
 # Texture Mapping
 
+> [Comparing 95419e5...f483f08 · AzurIce/Notes (github.com)](https://github.com/AzurIce/Notes/compare/95419e5...f483f08)
+
 ![check-board](./assets/image-texture-mapping-checker-board.png)
 
 ![checker-uv.png](./assets/image-texture-mapping-checker-uv.png)
