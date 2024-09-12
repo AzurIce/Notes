@@ -1,5 +1,13 @@
 # Texture Mapping
 
+![check-board](./assets/image-texture-mapping-checker-board.png)
+
+![checker-uv.png](./assets/image-texture-mapping-checker-uv.png)
+
+![image-texture-mapping](./assets/image-texture-mapping.png)
+
+---
+
 纹理映射，“纹理”是效果，“映射”是将一个空间映射到另一个空间的数学过程。
 
 其中“纹理”并不局限于颜色信息，同样可以是亮度信息、凹凸信息，甚至是物体部分的存在与否的信息。
@@ -375,3 +383,63 @@ let checker_texture: Arc<Box<dyn Texture + Send + Sync>> =
 
 ## 六、纹理图片
 
+```rust
+pub struct ImageTexture {
+    // ! Use ImageBuffer directly causes rayon error, so use Vec<u8> instead
+    data: Vec<u8>,
+    width: u32,
+    height: u32,
+}
+
+impl ImageTexture {
+    pub fn new(image: ImageBuffer<Rgb<u8>, Vec<u8>>) -> Self {
+        let width = image.width();
+        let height = image.height();
+        let data = image.to_vec();
+        Self {
+            data,
+            width,
+            height,
+        }
+    }
+
+    pub fn from_path(path: impl AsRef<Path>) -> Self {
+        let image = image::open(path).unwrap().to_rgb8();
+        Self::new(image)
+    }
+}
+
+impl Texture for ImageTexture {
+    fn value(&self, u: f32, v: f32, _point: Vec3) -> Vec3 {
+        let u = u.clamp(0.0, 1.0);
+        let v = 1.0 - v.clamp(0.0, 1.0);
+
+        let i = (u * self.width as f32) as usize;
+        let j = (v * self.height as f32) as usize;
+
+        let index = (j * self.width as usize + i) * 3;
+        let rgb = self.data.get(index..index + 3).unwrap();
+
+        Vec3::new(
+            rgb[0] as f32 / 255.0,
+            rgb[1] as f32 / 255.0,
+            rgb[2] as f32 / 255.0,
+        )
+    }
+}
+```
+
+使用这张图片：
+
+![earthmap](./assets/earthmap.jpg)
+
+```rust
+let earth_texture = ImageTexture::from_path("assets/earthmap.jpg");
+    let earth_texture: Arc<Box<dyn Texture + Send + Sync>> = Arc::new(Box::new(earth_texture));
+    let material: Arc<Box<dyn Material + Send + Sync>> =
+        Arc::new(Box::new(Lambertian::new(earth_texture)));
+```
+
+效果如下：
+
+![image-texture-mapping](./assets/image-texture-mapping.png)

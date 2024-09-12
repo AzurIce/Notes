@@ -5,7 +5,7 @@ use rand::random;
 use raytracing::{
     camera::Camera,
     material::{Dielectric, Lambertian, Material, Metal},
-    texture::{CheckerTexture, SolidCheckerTexture, SolidColor, Texture},
+    texture::{CheckerTexture, ImageTexture, SolidCheckerTexture, SolidColor, Texture},
     world::{
         bvh::{AabbHittable, BvhNode},
         list::List,
@@ -91,15 +91,10 @@ fn world() -> impl AabbHittable + Send + Sync {
 fn checkered_spheres() -> impl AabbHittable + Send + Sync {
     let mut objects = Vec::new();
 
-    let checker_texture: Arc<Box<dyn Texture + Send + Sync>> =
-        Arc::new(Box::new(CheckerTexture::new(
-            18,
-            8,
-            Arc::new(Box::new(SolidColor::new(Vec3::new(0.2, 0.3, 0.1)))),
-            Arc::new(Box::new(SolidColor::new(Vec3::new(0.9, 0.9, 0.9)))),
-        )));
+    let earth_texture = ImageTexture::from_path("assets/earthmap.jpg");
+    let earth_texture: Arc<Box<dyn Texture + Send + Sync>> = Arc::new(Box::new(earth_texture));
     let material: Arc<Box<dyn Material + Send + Sync>> =
-        Arc::new(Box::new(Lambertian::new(checker_texture)));
+        Arc::new(Box::new(Lambertian::new(earth_texture)));
 
     objects.push(Box::new(Sphere::new(
         Vec3::new(0.0, -10.0, 0.0),
