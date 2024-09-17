@@ -9,3 +9,17 @@
 - [BVH](./BVH.md)
 
     BVH 加速
+    
+- [Texture Mapping](./Texture Mapping.md)
+
+    纹理映射
+
+    ![check-board](./assets/image-texture-mapping-checker-board.png)
+
+    ![checker-uv.png](./assets/image-texture-mapping-checker-uv.png)
+
+    ![image-texture-mapping](./assets/image-texture-mapping.png)
+    
+- [Quadrilaterals](./Quadrilaterals.md)
+
+    ![quads-1](./assets/image-quads-1.png)

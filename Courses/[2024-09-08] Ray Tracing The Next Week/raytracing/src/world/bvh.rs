@@ -1,7 +1,6 @@
 use std::ops::Range;
 
 use glam::Vec3;
-use rand::random;
 
 use crate::{HitRecord, Hittable, Ray};
 
@@ -20,7 +19,19 @@ pub struct Aabb {
 }
 
 impl Aabb {
-    pub fn new(min: Vec3, max: Vec3) -> Self {
+    pub fn new(min: Vec3, mut max: Vec3) -> Self {
+        const DELTA: f32 = 0.0001;
+
+        if max.x - min.x < DELTA {
+            max.x += DELTA;
+        }
+        if max.y - min.y < DELTA {
+            max.y += DELTA;
+        }
+        if max.z - min.z < DELTA {
+            max.z += DELTA;
+        }
+
         Aabb { min, max }
     }
 
@@ -51,6 +62,8 @@ impl Hittable for Aabb {
 
             t_min = t_min.max(t0.min(t1));
             t_max = t_max.min(t0.max(t1));
+
+            // println!("t_min: {}, t_max: {}", t_min, t_max);
 
             if t_max <= t_min {
                 return None;

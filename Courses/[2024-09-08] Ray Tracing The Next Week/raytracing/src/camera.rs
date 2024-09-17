@@ -3,8 +3,9 @@ use std::{path::Path, time::Instant};
 
 use crate::{
     log::logger,
+    Hittable,
     utils::{linear_to_gamma, random_in_unit_disk},
-    Hittable, Ray,
+    Ray,
 };
 use ::log::info;
 use glam::Vec3;
