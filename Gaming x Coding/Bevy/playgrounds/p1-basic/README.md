@@ -80,7 +80,7 @@ where
     T: Bundle,
 ```
 
-可以简单理解 `Bundle` 为 Component 的元组。
+可以简单理解 `Bundle` 为 Component 的元组，这个函数会用给定的 component 的 `Bundle` 生成一个实体。
 
 此外，System 的函数参数中还可以添加一个 `Query`，利用它可以访问 Entity 与 Component：
 
