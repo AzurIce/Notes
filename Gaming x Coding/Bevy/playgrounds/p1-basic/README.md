@@ -1,6 +1,6 @@
 # p1-basic
 
-概述、Bevy 基本概念
+Bevy 中 App、System、Component、Resource 的基本概念
 
 ---
 
