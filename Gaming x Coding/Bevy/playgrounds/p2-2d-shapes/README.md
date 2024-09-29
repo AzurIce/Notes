@@ -1,6 +1,6 @@
 # p2-2d-shapes
 
-重要概念：`Assets`、`Handle`、`AssetId`
+重要概念：`DefaultPlugins` 中 `AssetPlugin` 的 `Assets`、`Handle`、`AssetId` 概念
 
 Component Bundle：`Camera2dBundle` 相机简单使用、`MaterialMesh2dBundle` 2d 图形、`TextBundle` 简单文字
 
@@ -44,9 +44,11 @@ fn setup(
 
 ## 二、Assets 与 Handle
 
-对于 `Mesh` 以及 `Material` 数据，需要一个全局的管理器，这时候就需要用到 `Assets`。
+对于 `Mesh` 以及 `Material` 数据，需要一个全局的管理器，这时候就需要用到 `AssetPlugin` 提供的 `Asset` 加载与处理等功能。
 
-`Assets<A: Asset>` 类似于一个资源管理器，可以存储若干 `A`，每个 `Asset` 可以由 `AssetId` 来标识，由 `Handle` 来引用。
+默认情况下 `AssetPlugin` 从 `assets` 目录（与 `Cargo.toml` 同级）加载。
+
+一个 `Asset` 是一个由 `AssetSource` 加载的运行时的值，而 `Assets<A: Asset>` 类似于一个资源管理器，可以存储若干 `Asset`，每个 `Asset` 可以由 `AssetId` 来标识，由 `Handle` 来引用。
 
 使用 `Assets` 的 `add` 方法可以添加一个 `asset`，它会返回一个 `Handle`：
 

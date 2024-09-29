@@ -22,6 +22,14 @@
 
     ![image-20240928151405644](./playgrounds/p2-2d-shapes/assets/image-20240928151405644.png)
 
+- [p3-bevy-egui](playgrounds/p3-bevy-egui/README.md)
+
+    egui 与 bevy 的基础集成
+
+    通过控制相机 `Viewport` 实现固定宽高比画面 `fit-contain` 式的绘制
+
+    ![side-pannel-and-center-camera-fit-content](./playgrounds/p3-bevy-egui/assets/side-pannel-and-center-camera-fit-content.gif)
+
 ## 一些资源
 
 - [Bevy Examples in WebGPU (bevyengine.org)](https://bevyengine.org/examples-webgpu/)
