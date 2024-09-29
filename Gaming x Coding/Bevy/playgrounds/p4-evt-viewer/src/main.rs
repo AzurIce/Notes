@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
+    input::mouse::MouseWheel,
     prelude::*,
     render::camera::{ScalingMode, Viewport},
     sprite::MaterialMesh2dBundle,
@@ -80,8 +81,9 @@ fn main() {
         .init_resource::<RenderAssets>()
         .init_resource::<AppState>()
         .add_systems(Startup, setup_system)
+        .add_systems(Update, scroll_zoom_system.run_if(scroll_zoom_condition))
         .add_systems(Update, ui_example_system)
-        .add_systems(Update, camera_content_fit_system)
+        .add_systems(Update, update_camera_system)
         .add_systems(FixedUpdate, rand_events_system)
         .run();
 }
@@ -113,10 +115,53 @@ impl FromWorld for RenderAssets {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct AppState {
     enable_random: bool,
     display_fps: bool,
+    /// Scaling for camera's projection
+    scale: f32,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            enable_random: false,
+            display_fps: true,
+            scale: 1.0,
+        }
+    }
+}
+
+fn scroll_zoom_condition(
+    occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
+) -> bool {
+    let window = query_window.get_single().unwrap();
+    if let Some(pos) = window.cursor_position() {
+        return pos.x > occupied_screen_space.left
+            && pos.y < window.width() - occupied_screen_space.right
+            && pos.y > occupied_screen_space.top
+            && pos.y < window.height() - occupied_screen_space.bottom;
+    }
+    false
+}
+
+fn scroll_zoom_system(mut state: ResMut<AppState>, mut evr_scroll: EventReader<MouseWheel>) {
+    use bevy::input::mouse::MouseScrollUnit;
+    for ev in evr_scroll.read() {
+        match ev.unit {
+            MouseScrollUnit::Line => {
+                state.scale = (state.scale + 0.1 * ev.y).clamp(1.0, 3.0);
+            }
+            MouseScrollUnit::Pixel => {
+                println!(
+                    "Scroll (pixel units): vertical: {}, horizontal: {}",
+                    ev.y, ev.x
+                );
+            }
+        }
+    }
 }
 
 /// egui ui
@@ -160,6 +205,7 @@ fn ui_example_system(
         .resizable(true)
         .show(ctx, |ui| {
             ui.label("Right resizeable panel");
+            ui.add(egui::Slider::new(&mut state.scale, 1.0..=3.0).text("zoom"));
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response
@@ -236,10 +282,12 @@ fn setup_system(
 }
 
 /// content fit
-fn camera_content_fit_system(
+fn update_camera_system(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     windows: Query<&Window, With<PrimaryWindow>>,
+    state: Res<AppState>,
     mut camera: Query<&mut Camera>,
+    mut projection: Query<&mut OrthographicProjection>,
 ) {
     let window = windows.single();
 
@@ -270,4 +318,7 @@ fn camera_content_fit_system(
         physical_size,
         depth: 0.0..1.0,
     });
+
+    let mut projection = projection.get_single_mut().unwrap();
+    projection.scale = 1.0 / state.scale;
 }

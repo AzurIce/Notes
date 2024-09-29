@@ -1,6 +1,10 @@
 # p4-evt-viewer
 
-二维渲染 `Camera2dBundle`、`OrthographicProjection`
+二维相机 `Camera2dBundle`：
+
+- `Viewport`
+
+- `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
 
 Plugin：`FPSOverlayPlugin`
 
@@ -8,7 +12,11 @@ EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
 
 `FromWorld` 的基本用法
 
+System 的 `run_if` 以及 `EventReader<MouseWheel>`
+
 ![evt-viewer](./assets/evt-viewer.gif)
+
+![evt-viewer-zoom](./assets/evt-viewer-zoom.gif)
 
 ---
 
@@ -199,6 +207,54 @@ if state.display_fps {
     overlay.text_config.color.set_alpha(1.0);
 } else {
     overlay.text_config.color.set_alpha(0.0);
+}
+```
+
+## 六、滚动缩放
+
+很简单，设置 `OrthographicProjection` 的 `scale` 属性即可。
+
+还有就是在鼠标位于 Camera 区域内时读取鼠标滚轮来调整：
+
+```rust
+fn scroll_zoom_condition(
+    occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
+) -> bool {
+    let window = query_window.get_single().unwrap();
+    if let Some(pos) = window.cursor_position() {
+        return pos.x > occupied_screen_space.left
+            && pos.y < window.width() - occupied_screen_space.right
+            && pos.y > occupied_screen_space.top
+            && pos.y < window.height() - occupied_screen_space.bottom;
+    }
+    false
+}
+
+fn scroll_zoom_system(mut state: ResMut<AppState>, mut evr_scroll: EventReader<MouseWheel>) {
+    use bevy::input::mouse::MouseScrollUnit;
+    for ev in evr_scroll.read() {
+        match ev.unit {
+            MouseScrollUnit::Line => {
+                state.scale = (state.scale + 0.1 * ev.y).clamp(1.0, 3.0);
+            }
+            MouseScrollUnit::Pixel => {
+                println!(
+                    "Scroll (pixel units): vertical: {}, horizontal: {}",
+                    ev.y, ev.x
+                );
+            }
+        }
+    }
+}
+```
+
+```rust
+func main() {
+    App::new()
+    	.add_systems(Update, scroll_zoom_system.run_if(scroll_zoom_condition))
+    	// ...
+    	.run();
 }
 ```
 

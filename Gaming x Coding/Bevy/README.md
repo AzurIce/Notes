@@ -32,7 +32,11 @@
 
 - [p4-evt-viewer](playgrounds/p4-evt-viewer/README.md)
 
-  二维渲染 `Camera2dBundle`、`OrthographicProjection`
+  二维相机 `Camera2dBundle`：
+  
+  - `Viewport`
+  
+  - `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
   
   Plugin：`FPSOverlayPlugin`
   
@@ -40,7 +44,11 @@
   
   `FromWorld` 的基本用法
   
+  System 的 `run_if` 以及 `EventReader<MouseWheel>`
+  
   ![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
+  
+  ![evt-viewer-zoom](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom.gif)
 
 ## 一些资源
 
