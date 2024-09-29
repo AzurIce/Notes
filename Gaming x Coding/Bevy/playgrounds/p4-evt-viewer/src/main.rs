@@ -2,7 +2,11 @@ use std::time::Duration;
 
 use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
-    input::mouse::MouseWheel,
+    input::{
+        common_conditions::{input_just_pressed, input_pressed},
+        mouse::{MouseButtonInput, MouseMotion, MouseWheel},
+    },
+    math::VectorSpace,
     prelude::*,
     render::camera::{ScalingMode, Viewport},
     sprite::MaterialMesh2dBundle,
@@ -81,7 +85,18 @@ fn main() {
         .init_resource::<RenderAssets>()
         .init_resource::<AppState>()
         .add_systems(Startup, setup_system)
-        .add_systems(Update, scroll_zoom_system.run_if(scroll_zoom_condition))
+        .add_systems(
+            Update,
+            (
+                (
+                    view_zoom_system,
+                    view_drag_system.run_if(input_pressed(MouseButton::Left)),
+                )
+                    .run_if(view_control_condition),
+                view_offset_clamp_system,
+            )
+                .chain(),
+        )
         .add_systems(Update, ui_example_system)
         .add_systems(Update, update_camera_system)
         .add_systems(FixedUpdate, rand_events_system)
@@ -121,6 +136,7 @@ pub struct AppState {
     display_fps: bool,
     /// Scaling for camera's projection
     scale: f32,
+    offset: Vec2,
 }
 
 impl Default for AppState {
@@ -129,25 +145,47 @@ impl Default for AppState {
             enable_random: false,
             display_fps: true,
             scale: 1.0,
+            offset: Vec2::ZERO,
         }
     }
 }
 
-fn scroll_zoom_condition(
+fn view_control_condition(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     query_window: Query<&Window, With<PrimaryWindow>>,
+    mut pressed_in_area: Local<bool>,
+    button_input: Res<ButtonInput<MouseButton>>,
 ) -> bool {
     let window = query_window.get_single().unwrap();
-    if let Some(pos) = window.cursor_position() {
-        return pos.x > occupied_screen_space.left
-            && pos.y < window.width() - occupied_screen_space.right
-            && pos.y > occupied_screen_space.top
-            && pos.y < window.height() - occupied_screen_space.bottom;
+    let cursor_in_area = window
+        .cursor_position()
+        .map(|pos| {
+            pos.x > occupied_screen_space.left
+                && pos.y < window.width() - occupied_screen_space.right
+                && pos.y > occupied_screen_space.top
+                && pos.y < window.height() - occupied_screen_space.bottom
+        })
+        .unwrap_or(false);
+
+    if button_input.just_pressed(MouseButton::Left) && cursor_in_area {
+        *pressed_in_area = true;
     }
-    false
+    if button_input.just_released(MouseButton::Left) {
+        *pressed_in_area = false;
+    }
+    cursor_in_area || *pressed_in_area
 }
 
-fn scroll_zoom_system(mut state: ResMut<AppState>, mut evr_scroll: EventReader<MouseWheel>) {
+fn view_offset_clamp_system(mut state: ResMut<AppState>) {
+    let width = (1280.0 - 1.0 / state.scale * 1280.0) / 2.0;
+    let height = (720.0 - 1.0 / state.scale * 720.0) / 2.0;
+
+    state.offset = state
+        .offset
+        .clamp(Vec2::new(-width, -height), Vec2::new(width, height));
+}
+
+fn view_zoom_system(mut state: ResMut<AppState>, mut evr_scroll: EventReader<MouseWheel>) {
     use bevy::input::mouse::MouseScrollUnit;
     for ev in evr_scroll.read() {
         match ev.unit {
@@ -161,6 +199,13 @@ fn scroll_zoom_system(mut state: ResMut<AppState>, mut evr_scroll: EventReader<M
                 );
             }
         }
+    }
+}
+
+fn view_drag_system(mut state: ResMut<AppState>, mut evr_motion: EventReader<MouseMotion>) {
+    let scale = 1.0 / state.scale;
+    for ev in evr_motion.read() {
+        state.offset += Vec2::new(-ev.delta.x, ev.delta.y) * scale;
     }
 }
 
@@ -205,6 +250,10 @@ fn ui_example_system(
         .resizable(true)
         .show(ctx, |ui| {
             ui.label("Right resizeable panel");
+            if ui.button("reset camera").clicked() {
+                state.offset = Vec2::ZERO;
+                state.scale = 1.0;
+            }
             ui.add(egui::Slider::new(&mut state.scale, 1.0..=3.0).text("zoom"));
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
@@ -286,6 +335,7 @@ fn update_camera_system(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     windows: Query<&Window, With<PrimaryWindow>>,
     state: Res<AppState>,
+    mut camera_transform: Query<&mut Transform, With<Camera>>,
     mut camera: Query<&mut Camera>,
     mut projection: Query<&mut OrthographicProjection>,
 ) {
@@ -321,4 +371,8 @@ fn update_camera_system(
 
     let mut projection = projection.get_single_mut().unwrap();
     projection.scale = 1.0 / state.scale;
+
+    let mut camera_transform = camera_transform.get_single_mut().unwrap();
+    camera_transform.translation.x = state.offset.x;
+    camera_transform.translation.y = state.offset.y;
 }

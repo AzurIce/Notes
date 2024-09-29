@@ -38,17 +38,21 @@
   
   - `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
   
+  - `Transform`：拖拽移动相机
+  
   Plugin：`FPSOverlayPlugin`
   
   EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
   
-  `FromWorld` 的基本用法
+  `FromWorld` 的基本用法、`Local` 的基本用法
   
-  System 的 `run_if` 以及 `EventReader<MouseWheel>`
+  System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_conditions::input_pressed`
   
   ![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
   
   ![evt-viewer-zoom](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom.gif)
+  
+  ![evt-viewer-zoom-drag](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom-drag.gif)
 
 ## 一些资源
 

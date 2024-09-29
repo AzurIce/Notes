@@ -6,17 +6,21 @@
 
 - `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
 
+- `Transform`：拖拽移动相机
+
 Plugin：`FPSOverlayPlugin`
 
 EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
 
-`FromWorld` 的基本用法
+`FromWorld` 的基本用法、`Local` 的基本用法
 
-System 的 `run_if` 以及 `EventReader<MouseWheel>`
+System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_conditions::inpu
 
 ![evt-viewer](./assets/evt-viewer.gif)
 
 ![evt-viewer-zoom](./assets/evt-viewer-zoom.gif)
+
+![evt-viewer-zoom-drag](./assets/evt-viewer-zoom-drag.gif)
 
 ---
 
@@ -217,7 +221,7 @@ if state.display_fps {
 还有就是在鼠标位于 Camera 区域内时读取鼠标滚轮来调整：
 
 ```rust
-fn scroll_zoom_condition(
+fn view_control_condition(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     query_window: Query<&Window, With<PrimaryWindow>>,
 ) -> bool {
@@ -258,3 +262,75 @@ func main() {
 }
 ```
 
+## 七、拖拽移动相机
+
+也是很简单，只需要以 `MouseMotion` 为输入，调整 offset 更新到相机的 `Transform` 组件即可。
+
+首先，优化一下 condition 的逻辑：
+
+```rust
+fn view_control_condition(
+    occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
+    mut pressed_in_area: Local<bool>,
+    button_input: Res<ButtonInput<MouseButton>>,
+) -> bool {
+    let window = query_window.get_single().unwrap();
+    let cursor_in_area = window
+        .cursor_position()
+        .map(|pos| {
+            pos.x > occupied_screen_space.left
+                && pos.y < window.width() - occupied_screen_space.right
+                && pos.y > occupied_screen_space.top
+                && pos.y < window.height() - occupied_screen_space.bottom
+        })
+        .unwrap_or(false);
+
+    if button_input.just_pressed(MouseButton::Left) && cursor_in_area {
+        *pressed_in_area = true;
+    }
+    if button_input.just_released(MouseButton::Left) {
+        *pressed_in_area = false;
+    }
+    cursor_in_area || *pressed_in_area
+}
+```
+
+这里用了一个 `Local` 来保存这个系统可见的状态，用法还是挺简单的，一看就会。
+
+然后是拖动响应以及到达边界时的修正：
+
+```rust
+fn view_offset_clamp_system(mut state: ResMut<AppState>) {
+    let width = (1280.0 - 1.0 / state.scale * 1280.0) / 2.0;
+    let height = (720.0 - 1.0 / state.scale * 720.0) / 2.0;
+
+    state.offset = state
+        .offset
+        .clamp(Vec2::new(-width, -height), Vec2::new(width, height));
+}
+
+fn view_drag_system(mut state: ResMut<AppState>, mut evr_motion: EventReader<MouseMotion>) {
+    let scale = 1.0 / state.scale;
+    for ev in evr_motion.read() {
+        state.offset += Vec2::new(-ev.delta.x, ev.delta.y) * scale;
+    }
+}
+```
+
+```rust
+.add_systems(
+    Update,
+    (
+        (
+            view_zoom_system,
+            view_drag_system.run_if(input_pressed(MouseButton::Left)),
+        )
+        .run_if(view_control_condition),
+        view_offset_clamp_system,
+    )
+    .chain(),
+)
+```
+
+逻辑就是 `view_zoom_system` 和只在左键按下时响应的 `view_drag_system` 一个更新 `scale` 一个更新 `offset`，这两个都只在满足 `view_control_codition` 时才执行，在这两个执行后，通过 `view_offset_clamp_system` 来修正 `offset`，确保其范围。
