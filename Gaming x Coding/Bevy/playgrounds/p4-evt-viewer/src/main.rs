@@ -33,9 +33,9 @@ fn generate_random_frame(
                         mesh: rect_mesh.clone_weak().into(),
                         transform: evt.transform(),
                         material: if evt.p {
-                            positive_material.clone_weak().into()
+                            positive_material.clone_weak()
                         } else {
-                            negative_material.clone_weak().into()
+                            negative_material.clone_weak()
                         },
                         ..default()
                     },
