@@ -20,7 +20,7 @@ System 的 `run_if` 以及 `EventReader<MouseWheel>`
 
 ---
 
-界面大概框架是与 [p3-bevy-egui](../p3-bevy-egui/README.md) 一样的 egui 上下左右面板 + fit-content 的 Camera。
+界面大概框架是与 [p3-bevy-egui](../p3-bevy-egui/README.md) 一样的 egui 上下左右面板 + `object-fit: contain` 的 Camera。
 
 ## 一、事件表示
 

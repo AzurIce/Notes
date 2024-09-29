@@ -26,7 +26,7 @@
 
     egui 与 bevy 的基础集成
 
-    通过控制相机 `Viewport` 实现固定宽高比画面 `fit-contain` 式的绘制
+    通过控制相机 `Viewport` 实现固定宽高比画面 `object-fit: contain` 式的绘制
 
     ![side-pannel-and-center-camera-fit-content](./playgrounds/p3-bevy-egui/assets/side-pannel-and-center-camera-fit-content.gif)
 

@@ -2,7 +2,7 @@
 
 egui 与 bevy 的基础集成
 
-通过控制相机 `Viewport` 实现固定宽高比画面 `fit-contain` 式的绘制
+通过控制相机 `Viewport` 实现固定宽高比画面 `object-fit: contain` 式的绘制
 
 ---
 
@@ -159,7 +159,7 @@ fn setup_system(
 
 ![side-pannel-and-center-camera](./assets/side-pannel-and-center-camera.gif)
 
-## 三、中心 Camera 区域的 Content-Fit 实现
+## 三、中心 Camera 区域的 `object-fit: contain` 实现
 
 `Camera` Component 有一个 `viewport` 属性，可以指定用于输出渲染结果的区域信息：
 
