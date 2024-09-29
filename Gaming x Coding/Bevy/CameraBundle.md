@@ -12,7 +12,6 @@
 - `Frustum`
 - `Transform`
 - `GlobalTransform`
-- `Camera3d`
 - `Tonemapping`
 - `DebandDither`
 - `CameraMainTextureUsages`
@@ -22,6 +21,10 @@
 - `ColorGrading`（3d 特有）
 
 - `Exposure`（3d 特有）
+
+- `Camera3d`（3d）/ `Camera2d`（2d）
+
+    都是用于标记的 Component，有 `With<Camera>` 的额外 `Filter`
 
 - `Projection`（3d）/ `OrthographicProjection`（2d）
 

@@ -280,7 +280,7 @@ fn view_control_condition(
         .cursor_position()
         .map(|pos| {
             pos.x > occupied_screen_space.left
-                && pos.y < window.width() - occupied_screen_space.right
+                && pos.x < window.width() - occupied_screen_space.right
                 && pos.y > occupied_screen_space.top
                 && pos.y < window.height() - occupied_screen_space.bottom
         })
