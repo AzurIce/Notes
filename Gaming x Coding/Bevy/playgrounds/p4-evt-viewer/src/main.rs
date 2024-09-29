@@ -3,10 +3,9 @@ use std::time::Duration;
 use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
     input::{
-        common_conditions::{input_just_pressed, input_pressed},
-        mouse::{MouseButtonInput, MouseMotion, MouseWheel},
+        common_conditions::input_pressed,
+        mouse::{MouseMotion, MouseWheel},
     },
-    math::VectorSpace,
     prelude::*,
     render::camera::{ScalingMode, Viewport},
     sprite::MaterialMesh2dBundle,
