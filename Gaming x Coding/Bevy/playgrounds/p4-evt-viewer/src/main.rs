@@ -21,17 +21,9 @@ fn generate_random_frame(
     for entity in query_events.iter() {
         commands.entity(entity).despawn();
     }
-    let rect_mesh = render_assets.rect_mesh.as_ref().unwrap().clone_weak();
-    let positive_material = render_assets
-        .positive_material
-        .as_ref()
-        .unwrap()
-        .clone_weak();
-    let negative_material = render_assets
-        .negative_material
-        .as_ref()
-        .unwrap()
-        .clone_weak();
+    let rect_mesh = render_assets.rect_mesh.clone_weak();
+    let positive_material = render_assets.positive_material.clone_weak();
+    let negative_material = render_assets.negative_material.clone_weak();
     commands.spawn_batch(
         rand_events(9000, 0..1280, 0..720)
             .into_iter()
@@ -83,8 +75,7 @@ fn main() {
         .init_resource::<OccupiedScreenLogicalSpace>()
         .init_resource::<RenderAssets>()
         .init_resource::<AppState>()
-        .add_systems(Startup, setup_render_assets_system)
-        .add_systems(Startup, setup_system.after(setup_render_assets_system))
+        .add_systems(Startup, setup_system)
         .add_systems(Update, ui_example_system)
         .add_systems(Update, camera_content_fit_system)
         .add_systems(FixedUpdate, rand_events_system)
@@ -92,21 +83,31 @@ fn main() {
 }
 
 /// [`Handle`]s that we need to reuse
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct RenderAssets {
-    pub rect_mesh: Option<Handle<Mesh>>,
-    pub positive_material: Option<Handle<ColorMaterial>>,
-    pub negative_material: Option<Handle<ColorMaterial>>,
+    pub rect_mesh: Handle<Mesh>,
+    pub positive_material: Handle<ColorMaterial>,
+    pub negative_material: Handle<ColorMaterial>,
 }
 
-fn setup_render_assets_system(
-    mut render_assets: ResMut<RenderAssets>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    render_assets.rect_mesh = Some(meshes.add(Rectangle::default()));
-    render_assets.positive_material = Some(materials.add(Color::srgb_u8(0x40, 0x7e, 0xc9)));
-    render_assets.negative_material = Some(materials.add(Color::WHITE));
+impl FromWorld for RenderAssets {
+    fn from_world(world: &mut World) -> Self {
+        let rect_mesh = {
+            let mut meshes = world.resource_mut::<Assets<Mesh>>();
+
+            meshes.add(Rectangle::default())
+        };
+
+        let mut materials = world.resource_mut::<Assets<ColorMaterial>>();
+        let positive_material = materials.add(Color::srgb_u8(0x40, 0x7e, 0xc9));
+        let negative_material = materials.add(Color::WHITE);
+
+        Self {
+            rect_mesh,
+            positive_material,
+            negative_material,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -209,11 +210,9 @@ fn setup_system(
     mut materials: ResMut<Assets<ColorMaterial>>,
     query_events: Query<Entity, With<EventMarker>>,
 ) {
-    let rect_mesh = render_assets.rect_mesh.as_ref().unwrap().clone_weak();
-
     // Background 1280 x 720 black rectangle
     commands.spawn(MaterialMesh2dBundle {
-        mesh: rect_mesh.clone_weak().into(),
+        mesh: render_assets.rect_mesh.clone_weak().into(),
         transform: Transform::default()
             .with_translation(-Vec3::Z)
             .with_scale(Vec3::new(1280.0, 720.0, 1.0)), // Use -1 to make sure background is behind all events
