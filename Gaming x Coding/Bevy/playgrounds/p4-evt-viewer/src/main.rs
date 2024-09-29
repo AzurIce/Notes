@@ -1,0 +1,266 @@
+use std::time::Duration;
+
+use bevy::{
+    dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
+    prelude::*,
+    render::camera::{ScalingMode, Viewport},
+    sprite::MaterialMesh2dBundle,
+    window::PrimaryWindow,
+    winit::WinitSettings,
+};
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use p4_evt_viewer::rand_events;
+
+fn generate_random_frame(
+    commands: &mut Commands,
+    render_assets: Res<RenderAssets>,
+    query_events: Query<Entity, With<EventMarker>>,
+) {
+    for entity in query_events.iter() {
+        commands.entity(entity).despawn();
+    }
+    let rect_mesh = render_assets.rect_mesh.as_ref().unwrap().clone_weak();
+    let positive_material = render_assets
+        .positive_material
+        .as_ref()
+        .unwrap()
+        .clone_weak();
+    let negative_material = render_assets
+        .negative_material
+        .as_ref()
+        .unwrap()
+        .clone_weak();
+    commands.spawn_batch(
+        rand_events(9000, 0..1280, 0..720)
+            .into_iter()
+            .map(move |evt| {
+                (
+                    MaterialMesh2dBundle {
+                        mesh: rect_mesh.clone_weak().into(),
+                        transform: evt.transform(),
+                        material: if evt.p {
+                            positive_material.clone_weak().into()
+                        } else {
+                            negative_material.clone_weak().into()
+                        },
+                        ..default()
+                    },
+                    EventMarker,
+                )
+            }),
+    );
+}
+
+#[derive(Default, Resource)]
+struct OccupiedScreenLogicalSpace {
+    left: f32,
+    top: f32,
+    right: f32,
+    bottom: f32,
+}
+
+fn main() {
+    App::new()
+        .insert_resource(RandTimer(Timer::new(
+            Duration::from_millis(10),
+            TimerMode::Repeating,
+        )))
+        .insert_resource(WinitSettings::desktop_app())
+        .add_plugins(DefaultPlugins)
+        .add_plugins(EguiPlugin)
+        .add_plugins(FpsOverlayPlugin {
+            config: FpsOverlayConfig {
+                text_config: TextStyle {
+                    font_size: 20.0,
+                    color: Color::WHITE,
+                    font: default(),
+                },
+            },
+        })
+        .init_resource::<OccupiedScreenLogicalSpace>()
+        .init_resource::<RenderAssets>()
+        .init_resource::<AppState>()
+        .add_systems(Startup, setup_render_assets_system)
+        .add_systems(Startup, setup_system.after(setup_render_assets_system))
+        .add_systems(Update, ui_example_system)
+        .add_systems(Update, update_camera_transform_system)
+        .add_systems(FixedUpdate, rand_events_system)
+        .run();
+}
+
+#[derive(Resource, Default)]
+pub struct RenderAssets {
+    pub rect_mesh: Option<Handle<Mesh>>,
+    pub positive_material: Option<Handle<ColorMaterial>>,
+    pub negative_material: Option<Handle<ColorMaterial>>,
+}
+
+fn setup_render_assets_system(
+    mut render_assets: ResMut<RenderAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    render_assets.rect_mesh = Some(meshes.add(Rectangle::default()));
+    render_assets.positive_material = Some(materials.add(Color::srgb_u8(0x40, 0x7e, 0xc9)));
+    render_assets.negative_material = Some(materials.add(Color::WHITE));
+}
+
+#[derive(Component)]
+struct EventMarker;
+
+#[derive(Resource, Default)]
+pub struct AppState {
+    enable_random: bool,
+    display_fps: bool,
+}
+
+fn ui_example_system(
+    mut contexts: EguiContexts,
+    mut occupied_screen_space: ResMut<OccupiedScreenLogicalSpace>,
+    mut commands: Commands,
+    render_assets: Res<RenderAssets>,
+    mut state: ResMut<AppState>,
+    query_events: Query<Entity, With<EventMarker>>,
+    mut overlay: ResMut<FpsOverlayConfig>,
+) {
+    let ctx = contexts.ctx_mut();
+
+    occupied_screen_space.left = egui::SidePanel::left("left_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Left resizeable panel");
+
+            ui.checkbox(
+                &mut state.enable_random,
+                "enable random generator in update",
+            );
+
+            ui.checkbox(&mut state.display_fps, "display fps");
+            if state.display_fps {
+                overlay.text_config.color.set_alpha(1.0);
+            } else {
+                overlay.text_config.color.set_alpha(0.0);
+            }
+
+            if ui.button("generate random frame").clicked() {
+                generate_random_frame(&mut commands, render_assets, query_events);
+            }
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .width();
+    occupied_screen_space.right = egui::SidePanel::right("right_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Right resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .width();
+    occupied_screen_space.top = egui::TopBottomPanel::top("top_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Top resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .height();
+    occupied_screen_space.bottom = egui::TopBottomPanel::bottom("bottom_panel")
+        .resizable(true)
+        .show(ctx, |ui| {
+            ui.label("Bottom resizeable panel");
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .height();
+
+    // Request repaint every frame
+    ctx.request_repaint();
+}
+
+#[derive(Resource)]
+struct RandTimer(Timer);
+
+fn rand_events_system(
+    mut commands: Commands,
+    render_assets: Res<RenderAssets>,
+    state: Res<AppState>,
+    query_events: Query<Entity, With<EventMarker>>,
+    time: Res<Time>,
+    mut timer: ResMut<RandTimer>,
+) {
+    if state.enable_random && timer.0.tick(time.delta()).just_finished() {
+        generate_random_frame(&mut commands, render_assets, query_events);
+    }
+}
+
+fn setup_system(
+    mut commands: Commands,
+    render_assets: Res<RenderAssets>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    query_events: Query<Entity, With<EventMarker>>,
+) {
+    let rect_mesh = render_assets.rect_mesh.as_ref().unwrap().clone_weak();
+    // Background
+    commands.spawn(MaterialMesh2dBundle {
+        mesh: rect_mesh.clone_weak().into(),
+        transform: Transform::default()
+            .with_translation(-Vec3::Z)
+            .with_scale(Vec3::new(1280.0, 720.0, 1.0)),
+        material: materials.add(Color::srgb(0.0, 0.0, 0.0)),
+        ..default()
+    });
+    generate_random_frame(&mut commands, render_assets, query_events);
+
+    commands.spawn(Camera2dBundle {
+        projection: OrthographicProjection {
+            near: -1000.0,
+            scaling_mode: ScalingMode::Fixed {
+                width: 1280.0,
+                height: 720.0,
+            },
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+}
+
+fn update_camera_transform_system(
+    occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut camera: Query<&mut Camera>,
+) {
+    let window = windows.single();
+
+    let aspect_ratio = 1280.0 / 720.0;
+    let logical_width = window.width() - occupied_screen_space.left - occupied_screen_space.right;
+    let logical_height = window.height() - occupied_screen_space.top - occupied_screen_space.bottom;
+    let logical_size = if logical_width / logical_height < aspect_ratio {
+        Vec2::new(logical_width, logical_width / aspect_ratio)
+    } else {
+        Vec2::new(logical_height * aspect_ratio, logical_height)
+    };
+    let logical_position = Vec2::new(
+        occupied_screen_space.left + (logical_width - logical_size.x) / 2.0,
+        occupied_screen_space.top + (logical_height - logical_size.y) / 2.0,
+    );
+    let mut physical_position = (logical_position * window.scale_factor()).as_uvec2();
+    let mut physical_size = (logical_size * window.scale_factor()).as_uvec2();
+    if physical_size.x * physical_size.y == 0 {
+        physical_position = UVec2::ZERO;
+        physical_size = UVec2::new(1, 1);
+    }
+    // println!("position: {:?} -> {:?}", logical_position, physical_position);
+    // println!("size: {:?} -> {:?}", logical_size, physical_size);
+
+    let mut camera = camera.get_single_mut().unwrap();
+    camera.viewport = Some(Viewport {
+        physical_position,
+        physical_size,
+        depth: 0.0..1.0,
+    });
+}

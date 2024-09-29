@@ -30,6 +30,16 @@
 
     ![side-pannel-and-center-camera-fit-content](./playgrounds/p3-bevy-egui/assets/side-pannel-and-center-camera-fit-content.gif)
 
+- [p4-evt-viewer](playgrounds/p4-evt-viewer/README.md)
+
+  二维渲染 `Camera2dBundle`、`OrthographicProjection`
+  
+  Plugin：`FPSOverlayPlugin`
+  
+  EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
+  
+  ![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
+
 ## 一些资源
 
 - [Bevy Examples in WebGPU (bevyengine.org)](https://bevyengine.org/examples-webgpu/)

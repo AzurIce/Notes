@@ -1,0 +1,9 @@
+[package]
+name = "p4-evt-viewer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_dev_tools"] }
+bevy_egui.workspace = true
+rand = "0.8.5"
