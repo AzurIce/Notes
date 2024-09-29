@@ -11,6 +11,8 @@ use bevy::{
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use p4_evt_viewer::rand_events;
 
+// A func to remove previous frame(existing event entity) and
+// generate a new frame(9000 random event entities)
 fn generate_random_frame(
     commands: &mut Commands,
     render_assets: Res<RenderAssets>,
@@ -51,6 +53,7 @@ fn generate_random_frame(
     );
 }
 
+/// Used to make camera result fit-content
 #[derive(Default, Resource)]
 struct OccupiedScreenLogicalSpace {
     left: f32,
@@ -67,7 +70,6 @@ fn main() {
         )))
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins)
-        .add_plugins(EguiPlugin)
         .add_plugins(FpsOverlayPlugin {
             config: FpsOverlayConfig {
                 text_config: TextStyle {
@@ -77,17 +79,19 @@ fn main() {
                 },
             },
         })
+        .add_plugins(EguiPlugin)
         .init_resource::<OccupiedScreenLogicalSpace>()
         .init_resource::<RenderAssets>()
         .init_resource::<AppState>()
         .add_systems(Startup, setup_render_assets_system)
         .add_systems(Startup, setup_system.after(setup_render_assets_system))
         .add_systems(Update, ui_example_system)
-        .add_systems(Update, update_camera_transform_system)
+        .add_systems(Update, camera_content_fit_system)
         .add_systems(FixedUpdate, rand_events_system)
         .run();
 }
 
+/// [`Handle`]s that we need to reuse
 #[derive(Resource, Default)]
 pub struct RenderAssets {
     pub rect_mesh: Option<Handle<Mesh>>,
@@ -114,6 +118,7 @@ pub struct AppState {
     display_fps: bool,
 }
 
+/// egui ui
 fn ui_example_system(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenLogicalSpace>,
@@ -205,17 +210,19 @@ fn setup_system(
     query_events: Query<Entity, With<EventMarker>>,
 ) {
     let rect_mesh = render_assets.rect_mesh.as_ref().unwrap().clone_weak();
-    // Background
+
+    // Background 1280 x 720 black rectangle
     commands.spawn(MaterialMesh2dBundle {
         mesh: rect_mesh.clone_weak().into(),
         transform: Transform::default()
             .with_translation(-Vec3::Z)
-            .with_scale(Vec3::new(1280.0, 720.0, 1.0)),
+            .with_scale(Vec3::new(1280.0, 720.0, 1.0)), // Use -1 to make sure background is behind all events
         material: materials.add(Color::srgb(0.0, 0.0, 0.0)),
         ..default()
     });
     generate_random_frame(&mut commands, render_assets, query_events);
 
+    // Fixed projection of 1280 x 720
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             near: -1000.0,
@@ -229,7 +236,8 @@ fn setup_system(
     });
 }
 
-fn update_camera_transform_system(
+/// content fit
+fn camera_content_fit_system(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     windows: Query<&Window, With<PrimaryWindow>>,
     mut camera: Query<&mut Camera>,
