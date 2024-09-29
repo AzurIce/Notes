@@ -4,55 +4,55 @@
 
 ## 目录
 
-- [p1-basic](playgrounds/p1-basic/README.md)
+### [p1-basic](playgrounds/p1-basic/README.md)
 
-    概述、Bevy 中 App、System、Component、Resource 的基本概念
+概述、Bevy 中 App、System、Component、Resource 的基本概念
 
-- [p2-2d-shapes](playgrounds/p2-2d-shapes/README.md)
+### [p2-2d-shapes](playgrounds/p2-2d-shapes/README.md)
 
-    重要概念：`Assets`、`Handle`、`AssetId`
+重要概念：`Assets`、`Handle`、`AssetId`
 
-    Component Bundle：`Camera2dBundle` 相机简单使用、`MaterialMesh2dBundle` 2d 图形、`TextBundle` 简单文字
+Component Bundle：`Camera2dBundle` 相机简单使用、`MaterialMesh2dBundle` 2d 图形、`TextBundle` 简单文字
 
-    Plugin：`Wireframe2dPlugin` 2d 图形线框显示
+Plugin：`Wireframe2dPlugin` 2d 图形线框显示
 
-    `Mesh2dHandle`、`Mesh`、`Transform`
+`Mesh2dHandle`、`Mesh`、`Transform`
 
-    ![image-20240928151411878](./playgrounds/p2-2d-shapes/assets/image-20240928151411878.png)
+![image-20240928151411878](./playgrounds/p2-2d-shapes/assets/image-20240928151411878.png)
 
-    ![image-20240928151405644](./playgrounds/p2-2d-shapes/assets/image-20240928151405644.png)
+![image-20240928151405644](./playgrounds/p2-2d-shapes/assets/image-20240928151405644.png)
 
-- [p3-bevy-egui](playgrounds/p3-bevy-egui/README.md)
+### [p3-bevy-egui](playgrounds/p3-bevy-egui/README.md)
 
-    egui 与 bevy 的基础集成
+egui 与 bevy 的基础集成
 
-    通过控制相机 `Viewport` 实现固定宽高比画面 `object-fit: contain` 式的绘制
+通过控制相机 `Viewport` 实现固定宽高比画面 `object-fit: contain` 式的绘制
 
-    ![side-pannel-and-center-camera-fit-content](./playgrounds/p3-bevy-egui/assets/side-pannel-and-center-camera-fit-content.gif)
+![side-pannel-and-center-camera-fit-content](./playgrounds/p3-bevy-egui/assets/side-pannel-and-center-camera-fit-content.gif)
 
-- [p4-evt-viewer](playgrounds/p4-evt-viewer/README.md)
+### [p4-evt-viewer](playgrounds/p4-evt-viewer/README.md)
 
-  二维相机 `Camera2dBundle`：
-  
-  - `Viewport`
-  
-  - `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
-  
-  - `Transform`：拖拽移动相机
-  
-  Plugin：`FPSOverlayPlugin`
-  
-  EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
-  
-  `FromWorld` 的基本用法、`Local` 的基本用法
-  
-  System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_conditions::input_pressed`
-  
-  ![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
-  
-  ![evt-viewer-zoom](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom.gif)
-  
-  ![evt-viewer-zoom-drag](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom-drag.gif)
+二维相机 `Camera2dBundle`：
+
+- `Viewport`
+
+- `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
+
+- `Transform`：拖拽移动相机
+
+Plugin：`FPSOverlayPlugin`
+
+EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
+
+`FromWorld` 的基本用法、`Local` 的基本用法
+
+System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_conditions::input_pressed`
+
+![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
+
+![evt-viewer-zoom](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom.gif)
+
+![evt-viewer-zoom-drag](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom-drag.gif)
 
 ## 一些资源
 
