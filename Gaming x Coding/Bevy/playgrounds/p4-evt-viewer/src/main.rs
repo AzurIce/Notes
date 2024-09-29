@@ -11,6 +11,10 @@ use bevy::{
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use p4_evt_viewer::rand_events;
 
+/// A marker Component to mark event entities
+#[derive(Component)]
+struct EventMarker;
+
 // A func to remove previous frame(existing event entity) and
 // generate a new frame(9000 random event entities)
 fn generate_random_frame(
@@ -94,7 +98,6 @@ impl FromWorld for RenderAssets {
     fn from_world(world: &mut World) -> Self {
         let rect_mesh = {
             let mut meshes = world.resource_mut::<Assets<Mesh>>();
-
             meshes.add(Rectangle::default())
         };
 
@@ -109,9 +112,6 @@ impl FromWorld for RenderAssets {
         }
     }
 }
-
-#[derive(Component)]
-struct EventMarker;
 
 #[derive(Resource, Default)]
 pub struct AppState {
