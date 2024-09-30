@@ -36,7 +36,7 @@ egui 与 bevy 的基础集成
 
 - `Viewport`
 
-- `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
+- `OrthographicProjection`：`scale` 缩放、`scaling_mode` AutoMin
 
 - `Transform`：拖拽移动相机
 
@@ -49,6 +49,8 @@ EntityCommands 的 `despawn`与 Commands 的 `spawn_batch`
 System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_conditions::input_pressed`
 
 ![evt-viewer](./playgrounds/p4-evt-viewer/assets/evt-viewer.gif)
+
+> 下面两个帧数变低是因为把事件数 x3 了（）
 
 ![evt-viewer-zoom](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom.gif)
 

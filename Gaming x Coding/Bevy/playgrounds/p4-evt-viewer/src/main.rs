@@ -176,8 +176,8 @@ fn view_control_condition(
 }
 
 fn view_offset_clamp_system(mut state: ResMut<AppState>) {
-    let width = (1280.0 - 1.0 / state.scale * 1280.0) / 2.0;
-    let height = (720.0 - 1.0 / state.scale * 720.0) / 2.0;
+    let width = ((1280.0 - 1.0 / state.scale * 1280 as f32) / 2.0).max(0.0);
+    let height = ((720.0 - 1.0 / state.scale * 720 as f32) / 2.0).max(0.0);
 
     state.offset = state
         .offset
@@ -309,19 +309,18 @@ fn setup_system(
         mesh: render_assets.rect_mesh.clone_weak().into(),
         transform: Transform::default()
             .with_translation(-Vec3::Z)
-            .with_scale(Vec3::new(1280.0, 720.0, 1.0)), // Use -1 to make sure background is behind all events
+            .with_scale(Vec3::new(2560.0, 720.0, 1.0)), // Use -1 to make sure background is behind all events
         material: materials.add(Color::srgb(0.0, 0.0, 0.0)),
         ..default()
     });
     generate_random_frame(&mut commands, render_assets, query_events);
 
-    // Fixed projection of 1280 x 720
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             near: -1000.0,
-            scaling_mode: ScalingMode::Fixed {
-                width: 1280.0,
-                height: 720.0,
+            scaling_mode: ScalingMode::AutoMin {
+                min_width: 1280.0,
+                min_height: 720.0,
             },
             ..Default::default()
         },
@@ -329,7 +328,6 @@ fn setup_system(
     });
 }
 
-/// content fit
 fn update_camera_system(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -340,26 +338,19 @@ fn update_camera_system(
 ) {
     let window = windows.single();
 
-    let aspect_ratio = 1280.0 / 720.0;
     let logical_width = window.width() - occupied_screen_space.left - occupied_screen_space.right;
     let logical_height = window.height() - occupied_screen_space.top - occupied_screen_space.bottom;
-    let logical_size = if logical_width / logical_height < aspect_ratio {
-        Vec2::new(logical_width, logical_width / aspect_ratio)
-    } else {
-        Vec2::new(logical_height * aspect_ratio, logical_height)
-    };
+    let logical_size = Vec2::new(logical_width, logical_height);
     let logical_position = Vec2::new(
         occupied_screen_space.left + (logical_width - logical_size.x) / 2.0,
         occupied_screen_space.top + (logical_height - logical_size.y) / 2.0,
     );
     let mut physical_position = (logical_position * window.scale_factor()).as_uvec2();
     let mut physical_size = (logical_size * window.scale_factor()).as_uvec2();
-    if physical_size.x * physical_size.y == 0 {
+    if physical_size.x == 0 || physical_size.y == 0 {
         physical_position = UVec2::ZERO;
         physical_size = UVec2::new(1, 1);
     }
-    // println!("position: {:?} -> {:?}", logical_position, physical_position);
-    // println!("size: {:?} -> {:?}", logical_size, physical_size);
 
     let mut camera = camera.get_single_mut().unwrap();
     camera.viewport = Some(Viewport {

@@ -4,7 +4,7 @@
 
 - `Viewport`
 
-- `OrthographicProjection`：`scale` 缩放、`scaling_mode` 固定
+- `OrthographicProjection`：`scale` 缩放、`scaling_mode` AutoM
 
 - `Transform`：拖拽移动相机
 
@@ -18,6 +18,8 @@ System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_condi
 
 ![evt-viewer](./assets/evt-viewer.gif)
 
+> 下面两个帧数变低是因为把事件数 x3 了（）
+
 ![evt-viewer-zoom](./assets/evt-viewer-zoom.gif)
 
 ![evt-viewer-zoom-drag](./assets/evt-viewer-zoom-drag.gif)
@@ -25,6 +27,71 @@ System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_condi
 ---
 
 界面大概框架是与 [p3-bevy-egui](../p3-bevy-egui/README.md) 一样的 egui 上下左右面板 + `object-fit: contain` 的 Camera。
+
+突然发现，对于 `OrthographicProjection` 来说，要实现 `object-fit: contain` 并不需要手动通过调整 viewport 来实现，只需要将 `scale_mode` 设为 `ScaleMode::AutoMin { min_width: 1280.0, min_height: 720.0 }` 即可：
+
+```rust
+commands.spawn(Camera2dBundle {
+    projection: OrthographicProjection {
+        near: -1000.0,
+        scaling_mode: ScalingMode::AutoMin {
+            min_width: 1280.0,
+            min_height: 720.0,
+        },
+        ..Default::default()
+    },
+    ..Default::default()
+});
+```
+
+这个 `AutoMin` 的含义：
+
+- Auto：自动缩放来匹配 viewport 大小
+- Min：至少要保证世界坐标中的 `min_width` x `min_height` 可见
+
+所以 `update_camera_system` 只需要更新 viewport 大小充满 UI 剩余空间即可，这样视口更大，但保证能看到要求的内容。
+
+```rust
+fn update_camera_system(
+    occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    state: Res<AppState>,
+    mut camera_transform: Query<&mut Transform, With<Camera>>,
+    mut camera: Query<&mut Camera>,
+    mut projection: Query<&mut OrthographicProjection>,
+) {
+    let window = windows.single();
+
+    let logical_width = window.width() - occupied_screen_space.left - occupied_screen_space.right;
+    let logical_height = window.height() - occupied_screen_space.top - occupied_screen_space.bottom;
+    let logical_size = Vec2::new(logical_width, logical_height);
+    let logical_position = Vec2::new(
+        occupied_screen_space.left + (logical_width - logical_size.x) / 2.0,
+        occupied_screen_space.top + (logical_height - logical_size.y) / 2.0,
+    );
+    let mut physical_position = (logical_position * window.scale_factor()).as_uvec2();
+    let mut physical_size = (logical_size * window.scale_factor()).as_uvec2();
+    if physical_size.x == 0 || physical_size.y == 0 {
+        physical_position = UVec2::ZERO;
+        physical_size = UVec2::new(1, 1);
+    }
+
+    let mut camera = camera.get_single_mut().unwrap();
+    camera.viewport = Some(Viewport {
+        physical_position,
+        physical_size,
+        depth: 0.0..1.0,
+    });
+
+    let mut projection = projection.get_single_mut().unwrap();
+    projection.scale = 1.0 / state.scale;
+
+    let mut camera_transform = camera_transform.get_single_mut().unwrap();
+    camera_transform.translation.x = state.offset.x;
+    camera_transform.translation.y = state.offset.y;
+}
+
+```
 
 ## 一、事件表示
 
