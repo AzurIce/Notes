@@ -110,7 +110,7 @@ fn setup_system(
 fn update_camera_transform_system(
     occupied_screen_space: Res<OccupiedScreenLogicalSpace>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut camera: Query<&mut Camera>,
+    mut cam_query: Query<(&mut Camera, &mut Projection)>,
 ) {
     let window = windows.single();
 
@@ -135,10 +135,13 @@ fn update_camera_transform_system(
     // println!("position: {:?} -> {:?}", logical_position, physical_position);
     // println!("size: {:?} -> {:?}", logical_size, physical_size);
 
-    let mut camera = camera.get_single_mut().unwrap();
+    let (mut camera, mut projection) = cam_query.get_single_mut().unwrap();
     camera.viewport = Some(Viewport {
         physical_position,
         physical_size,
         depth: 0.0..1.0,
     });
+    if let Projection::Perspective(projection) = projection.as_mut() {
+        
+    }
 }
