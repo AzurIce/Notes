@@ -3061,6 +3061,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "p5-evt-viewer-plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+ "rand",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

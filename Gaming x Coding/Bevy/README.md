@@ -56,6 +56,12 @@ System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_condi
 
 ![evt-viewer-zoom-drag](./playgrounds/p4-evt-viewer/assets/evt-viewer-zoom-drag.gif)
 
+### [p5-evt-viewer-plugin](playgrounds/p5-evt-viewer-plugin/README.md)
+
+使用 `Plugin` 来封装 [p4-evt-viewer](../p4-evt-viewer/README.md) 并添加对多个相机的支持
+
+![evt-viewer-plugin](playgrounds/p5-evt-viewer-plugin/assets/evt-viewer-plugin.gif)
+
 ## 一些资源
 
 - [Bevy Examples in WebGPU (bevyengine.org)](https://bevyengine.org/examples-webgpu/)
