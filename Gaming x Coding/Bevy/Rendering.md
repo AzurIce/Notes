@@ -82,6 +82,26 @@ pub trait ExtractComponent: Component {
 
 为了方便，Bevy 提供了一个 Derive 宏，可以直接为 `Clone` 的 `Component` 实现这个 Trait（Extract 时就是直接 `clone`）
 
+## RenderPhase
+
+在 Bevy 中，每一个 View（如相机、会产生阴影的光源等等）都有一个或多个 Render Phase（如 Opaque、Transparent、Shadow等等），每一个 Render Phase 中都可以查询需要绘制的实体。
+
+之所以需要不同的 Phase，是因为不同的 Phase 中可能对 Sorting 或 Batching 的行为有不同的要求（比如 Opaque 需要从前到后排序，而 Transparent 需要从后到前排序）同时后一个 Phase 可能对前一个 Phase 的渲染结果有依赖（比如屏幕空间反射）。
+
+要想绘制一个实体，需要为每一个能看到这个实体的 View 添加一个对应的 PhaseItem 到一个或多个 Render Phase 中。这个过程需要在 `RenderSet::Queue` 中完成。
+
+在这之后，Render Phase 会将他们在 `RenderSet::PhaseSort` 中排序，最终使用一个 `TrackedRenderPass` 在 `RenderSet::Render` 中渲染。
+
+所以对于每一个 `PhaseItem` 都需要一个 `Draw` 函数来设置好 `TrackedRenderPass` 的状态（选择 `RenderPipeline`、设置 `BindGroup` 等等）并且发起一个绘制调用。
+
+`Draw` 函数可以被直接从 Trait 实现，或者通过组合多个 `RenderCommand` 实现。
+
+
+
+## DrawFunctions
+
+DrawFunctions 为一个 PhaseItem 存储了用于绘制的函数
+
 ## 二、如何为某个 Component 实现渲染的逻辑
 
 Bevy 中的 `MaterialMesh2dBundle` 之所以可以渲染，是因为其中的 `Mesh2dHandle` 在 `Mesh2dRenderPlugin` 以及 `Material2dPlugin` 中实现了对应的渲染逻辑，同理 `SpriteBundle` 之所以可以渲染，是因为其中的 `Sprite` 在 `SpritePlugin` 以及 `Material2dPlugin` 中实现了对应的渲染逻辑。
