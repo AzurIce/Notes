@@ -1,0 +1,8 @@
+[package]
+name = "p6-shader-instancing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_dev_tools"] }
+bytemuck = "1.18.0"

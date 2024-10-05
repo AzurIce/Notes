@@ -179,7 +179,7 @@ impl Plugin for CustomMaterialPlugin {
 
 Bevy 提供了一个简单的 `ExtractComponentPlugin`，通过它可以使一个 Component 在 Extract 阶段自动提取到 Render World 中。
 
-
+se140145
 
 ## 参考
 
