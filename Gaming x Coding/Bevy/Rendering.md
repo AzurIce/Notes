@@ -100,7 +100,44 @@ pub trait ExtractComponent: Component {
 
 ## DrawFunctions
 
-DrawFunctions 为一个 PhaseItem 存储了用于绘制的函数
+
+
+## RenderCommand
+
+RenderCommand 是用于组件渲染逻辑的模块化的标准组件，最终会被转换为 `Draw` 函数，比如 `DrawMaterial` 其实就是这样的一个元组：
+
+```rust
+pub type DrawMaterial<M> = (
+    SetItemPipeline,
+    SetMeshViewBindGroup<0>,
+    SetMeshBindGroup<1>,
+    SetMaterialBindGroup<M, 2>,
+    DrawMesh,
+);
+```
+
+
+
+有 DrawFunctions 的 Resource：
+
+```rust
+pub struct DrawFunctions<P>
+where
+    P: PhaseItem,
+{ /* private fields */ }
+```
+
+在其中会为一个 PhaseItem 存储所有的 Draw Functions，通过 `SubApp::add_render_command` 可以将一个 `RenderCommand` 注册为对应 `PhaseItem` 的 `Draw` 函数：
+
+```rust
+fn add_render_command<P, C>(&mut self) -> &mut SubApp
+where
+    P: PhaseItem,
+    C: RenderCommand<P> + Send + Sync + 'static,
+    <C as RenderCommand<P>>::Param: ReadOnlySystemParam,
+```
+
+
 
 ## 二、如何为某个 Component 实现渲染的逻辑
 
@@ -175,9 +212,13 @@ impl Plugin for CustomMaterialPlugin {
 }
 ```
 
+## ExtractComponentPlugin
+
 由于在 Render World 中无法访问到 Main World 的数据，因此需要通过 Extract 来讲需要用的数据提取到 Render World 中。
 
 Bevy 提供了一个简单的 `ExtractComponentPlugin`，通过它可以使一个 Component 在 Extract 阶段自动提取到 Render World 中。
+
+
 
 se140145
 
