@@ -23,7 +23,7 @@ use bevy::{
         render_resource::*,
         renderer::RenderDevice,
         view::{ExtractedView, NoFrustumCulling},
-        Render, RenderApp, RenderSet,
+        Extract, Render, RenderApp, RenderSet,
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -81,42 +81,65 @@ fn setup_simple(
     });
 }
 
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    commands.spawn((
-        meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
-        SpatialBundle::INHERITED_IDENTITY,
-        InstanceMaterialData(
-            (1..=MAX_SIZE)
-                .flat_map(|x| {
-                    (1..=MAX_SIZE)
-                        .map(move |y| (x as f32 / MAX_SIZE as f32, y as f32 / MAX_SIZE as f32))
-                })
-                .map(|(x, y)| InstanceData {
-                    position: Vec3::new(
-                        x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                        y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                        0.0,
-                    ),
-                    scale: 1.0,
-                    color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-                })
-                .collect(),
-        ),
-        // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
-        // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
-        // instanced cubes will be culled.
-        // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
-        // instancing, and that is not taken into account with the built-in frustum culling.
-        // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
-        // component to avoid incorrect culling.
-        NoFrustumCulling,
-    ));
+fn setup(mut commands: Commands, mesh_handle: Res<MeshHandle>) {
+    let frame = commands
+        .spawn((
+            mesh_handle.0.clone(),
+            SpatialBundle::INHERITED_IDENTITY,
+            Frame,
+        ))
+        .id();
+    for bundle in (1..=MAX_SIZE)
+        .flat_map(|x| {
+            (1..=MAX_SIZE).map(move |y| (x as f32 / MAX_SIZE as f32, y as f32 / MAX_SIZE as f32))
+        })
+        .map(|(x, y)| Event {
+            position: Vec3::new(
+                x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
+                y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
+                0.0,
+            ),
+            color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+        })
+    {
+        commands.spawn(bundle).set_parent(frame);
+    }
+    // commands.spawn((
+    //     meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+    //     SpatialBundle::INHERITED_IDENTITY,
+    //     InstanceMaterialData(
+    //         (1..=MAX_SIZE)
+    //             .flat_map(|x| {
+    //                 (1..=MAX_SIZE)
+    //                     .map(move |y| (x as f32 / MAX_SIZE as f32, y as f32 / MAX_SIZE as f32))
+    //             })
+    //             .map(|(x, y)| InstanceData {
+    //                 position: Vec3::new(
+    //                     x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
+    //                     y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
+    //                     0.0,
+    //                 ),
+    //                 scale: 1.0,
+    //                 color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
+    //             })
+    //             .collect(),
+    //     ),
+    //     // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
+    //     // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
+    //     // instanced cubes will be culled.
+    //     // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
+    //     // instancing, and that is not taken into account with the built-in frustum culling.
+    //     // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
+    //     // component to avoid incorrect culling.
+    //     NoFrustumCulling,
+    // ));
 
     // camera
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
-        projection: Projection::Perspective(PerspectiveProjection {
-            fov: 10.0,
+        projection: Projection::Orthographic(OrthographicProjection {
+            near: -1000.0,
+            far: 1000.0,
             ..Default::default()
         }),
         ..Default::default()
@@ -126,14 +149,32 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
 #[derive(Component, Deref, Clone, ExtractComponent)]
 struct InstanceMaterialData(Vec<InstanceData>);
 
+#[derive(Component)]
+struct Event {
+    position: Vec3,
+    color: [f32; 4],
+}
+
+#[derive(Component)]
+struct Frame;
+
 struct CustomMaterialPlugin;
+
+#[derive(Resource)]
+struct MeshHandle(Handle<Mesh>);
 
 impl Plugin for CustomMaterialPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
+        let handle = app
+            .world_mut()
+            .resource_mut::<Assets<Mesh>>()
+            .add(Cuboid::default());
+        app.insert_resource(MeshHandle(handle));
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawCustom>()
             .init_resource::<SpecializedMeshPipelines<CustomPipeline>>()
+            .add_systems(ExtractSchedule, extract_events)
             .add_systems(
                 Render,
                 (
@@ -145,6 +186,31 @@ impl Plugin for CustomMaterialPlugin {
 
     fn finish(&self, app: &mut App) {
         app.sub_app_mut(RenderApp).init_resource::<CustomPipeline>();
+    }
+}
+
+fn extract_events(
+    mut commands: Commands,
+    query: Extract<Query<(Entity, &Children), With<Frame>>>,
+    events: Extract<Query<&Event>>,
+) {
+    // info!("extracting {} events", query.iter().len());
+    for (entity, children) in query.iter() {
+        let events = children
+            .iter()
+            .map(|&event| {
+                let event = events.get(event).unwrap();
+                InstanceData {
+                    position: event.position,
+                    scale: 1.0,
+                    color: event.color,
+                }
+            })
+            .collect::<Vec<InstanceData>>();
+        // info!("extracted {} events", events.iter().len());
+        commands
+            .get_or_spawn(entity)
+            .insert(InstanceMaterialData(events));
     }
 }
 
@@ -180,11 +246,14 @@ fn queue_custom(
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
         let rangefinder = view.rangefinder3d();
+        // info!("queueing {} instances", material_meshes.iter().len());
         for entity in &material_meshes {
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
+                warn!("no mesh instance");
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+                warn!("no gpu mesh");
                 continue;
             };
             let key =
