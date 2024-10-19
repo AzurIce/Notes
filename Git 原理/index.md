@@ -425,3 +425,112 @@ fatal: Refusing to point HEAD outside of refs/
 前面我们刚讨论过 Git 的三种主要的对象类型（**数据对象**、**树对象** 和 **提交对象** ），然而实际上还有第四种。 **标签对象（tag object）** 非常类似于一个提交对象——它包含一个标签创建者信息、一个日期、一段注释信息，以及一个指针。 主要的区别在于，标签对象通常指向一个提交对象，而不是一个树对象。 它像是一个永不移动的分支引用——永远指向同一个提交对象，只不过给这个提交对象加上一个更友好的名字罢了。
 
 咕
+
+// TODO: Remotes
+
+## 三、Packfiles
+
+假如有一个 22K 的 `repo.rb`，它在被修改一点点后会被存储为一个崭新的对象。但是 Git 并不会真的占用 44K 的空间来存储它们。
+
+Git 最开始存储对象的格式叫做 "loose" 对象格式，在一些情况 Git 会将一些这样的对象打包为一个二进制文件（被称作 packfile）来节省空间。
+
+可以通过手动执行 `git gc` 来让 Git 打包对象（在 push 的时候也会看到这个）：
+
+```
+$ git gc
+Counting objects: 18, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (14/14), done.
+Writing objects: 100% (18/18), done.
+Total 18 (delta 3), reused 0 (delta 0)
+```
+
+这时候再去查看 `objects` 目录就会发现，很多对象都消失了，然后多了 `.idx` 和 `.pack` 两个文件：
+
+```
+$ find .git/objects -type f
+.git/objects/bd/9dbf5aae1a3862dd1526723246b20206e5fc37
+.git/objects/d6/70460b4b4aece5915caf5c68d12f560a9fe3e4
+.git/objects/info/packs
+.git/objects/pack/pack-978e03944f5c581011e6998cd0e9e30000905586.idx
+.git/objects/pack/pack-978e03944f5c581011e6998cd0e9e30000905586.pack
+```
+
+通过 `git verify-pack` 可以查看有什么被打包了：
+
+```
+$ git verify-pack -v .git/objects/pack/pack-978e03944f5c581011e6998cd0e9e30000905586.idx
+2431da676938450a4d72e260db3bf7b0f587bbc1 commit 223 155 12
+69bcdaff5328278ab1c0812ce0e07fa7d26a96d7 commit 214 152 167
+80d02664cb23ed55b226516648c7ad5d0a3deb90 commit 214 145 319
+43168a18b7613d1281e5560855a83eb8fde3d687 commit 213 146 464
+092917823486a802e94d727c820a9024e14a1fc2 commit 214 146 610
+702470739ce72005e2edff522fde85d52a65df9b commit 165 118 756
+d368d0ac0678cbe6cce505be58126d3526706e54 tag    130 122 874
+fe879577cb8cffcdf25441725141e310dd7d239b tree   136 136 996
+d8329fc1cc938780ffdd9f94e0d364e0ea74f579 tree   36 46 1132
+deef2e1b793907545e50a2ea2ddb5ba6c58c4506 tree   136 136 1178
+d982c7cb2c2a972ee391a85da481fc1f9127a01d tree   6 17 1314 1 \
+  deef2e1b793907545e50a2ea2ddb5ba6c58c4506
+3c4e9cd789d88d8d89c1073707c3585e41b0e614 tree   8 19 1331 1 \
+  deef2e1b793907545e50a2ea2ddb5ba6c58c4506
+0155eb4229851634a0f03eb265b69f5a2d56f341 tree   71 76 1350
+83baae61804e65cc73a7201a7252750c76066a30 blob   10 19 1426
+fa49b077972391ad58037050f2a75f74e3671e92 blob   9 18 1445
+b042a60ef7dff760008df33cee372b945b6e884e blob   22054 5799 1463
+033b4468fa6b2a9547a70d88d1bbe8bf3f9ed0d5 blob   9 20 7262 1 \
+  b042a60ef7dff760008df33cee372b945b6e884e
+1f7a7a472abf3dd9643fd615f6da379c4acb3e3a blob   10 19 7282
+non delta: 15 objects
+chain length = 1: 3 objects
+.git/objects/pack/pack-978e03944f5c581011e6998cd0e9e30000905586.pack: ok
+```
+
+> ```
+> 033b4468fa6b2a9547a70d88d1bbe8bf3f9ed0d5 blob   9 20 7262 1 \
+>   b042a60ef7dff760008df33cee372b945b6e884e
+> ```
+>
+> 中 033b4 是第一个版本的 `repo.rb` 而 b042a 是第二个版本的
+
+第三列表示这个对象在 pack 文件中占的大小（也就是第一个数字），可以发现，只占用了 9B。
+
+而且第二个文件是被完整存储的，而第一个文件被存储为 delta，这是因为我们更可能需要更快地访问最新的文件。
+
+## 五、Refspec
+
+// TODO
+
+## 六、Transfer Protocols
+
+Git 可以在两个仓库之间以两种主要的方式来传输数据：一个“蠢”协议，一个“聪明”协议。
+
+### 蠢协议
+
+之所以说它蠢，是因为它不要求服务端有任何 Git 相关的代码，所有请求都是基于 HTTP `GET` 的。
+
+比如对于下面这个 `http-fetch` 过程：
+
+```
+$ git clone http://server/simplegit-progit.git
+```
+
+它所做的事情如下：
+
+1. 获取引用及 SHA-1 列表：获取 `info/refs` 文件（由 `update-server-info` 命令写入）
+
+    ```
+    => GET info/refs
+    ca82a6dff817ec66f44342007202690a93763949     refs/heads/master
+    ```
+
+2. 了解要 Check Out 什么：获取 HEAD
+
+    ```
+    => GET HEAD
+    ref: refs/heads/master
+    ```
+
+3. 
+
+咕
