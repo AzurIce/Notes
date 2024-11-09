@@ -1,0 +1,9 @@
+[package]
+name = "p8-noise-terrain"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy.workspace = true
+bevy_panorbit_camera = "0.19.3"
+noise = "0.9.0"

@@ -76,6 +76,8 @@ Extract、Prepare、Queue、Pipeline
 
 ![image-20241109115144350](./playgrounds/p7-shader-instancing/assets/image-20241004110800690.png)
 
+### [p8-noise-terrain](./playground/p8-noise-terrain)
+
 
 
 ## 一些资源

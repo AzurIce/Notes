@@ -3,7 +3,7 @@ members = ["playgrounds/*"]
 resolver = "2" # Important! wgpu/Bevy needs this!
 
 [workspace.dependencies]
-bevy = "0.14"
+bevy = "0.14.2"
 bevy_egui = "0.29.0"
 
 # Enable a small amount of optimization in the dev profile.
