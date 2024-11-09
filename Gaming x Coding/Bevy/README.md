@@ -62,6 +62,22 @@ System 的 `run_if`、`chain` 以及 `EventReader<MouseWheel>` 和 `common_condi
 
 ![evt-viewer-plugin](playgrounds/p5-evt-viewer-plugin/assets/evt-viewer-plugin.gif)
 
+### [p6-render-to-texture](playgrounds/p6-render-to-texture/README.md)
+
+`Image`、`RenderLayer`、`Camera` 的 target 与 order。
+
+![image-20241109115144350](playgrounds/p6-render-to-texture/assets/image.gif)
+
+### [p7-shader-instancing](playgrounds/p7-shader-instancing/README.md)
+
+Extract、Prepare、Queue、Pipeline
+
+![image-20241109115144350](playgrounds/p7-shader-instancing/assets/image-20241004110716612.png)
+
+![image-20241109115144350](./playgrounds/p7-shader-instancing/assets/image-20241004110800690.png)
+
+
+
 ## 一些资源
 
 - [Bevy Examples in WebGPU (bevyengine.org)](https://bevyengine.org/examples-webgpu/)

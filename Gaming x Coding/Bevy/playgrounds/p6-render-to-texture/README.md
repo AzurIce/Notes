@@ -1,6 +1,6 @@
 # p6-render-to-texture
 
-![image-20241109115144350](./assets/image-20241109115144350.png)
+![image-20241109115144350](./assets/image.gif)
 
 ```mermaid
 flowchart LR
