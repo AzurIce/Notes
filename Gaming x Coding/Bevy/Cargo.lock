@@ -3070,6 +3070,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "p6-render-to-texture"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
+name = "p7-shader-instancing"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bytemuck",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
