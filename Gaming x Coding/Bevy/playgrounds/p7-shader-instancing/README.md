@@ -1,4 +1,4 @@
-# p6-shader-instancing
+# p7-shader-instancing
 
 200 * 200 个立方体。
 

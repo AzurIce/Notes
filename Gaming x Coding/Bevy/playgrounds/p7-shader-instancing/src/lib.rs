@@ -1,13 +1,6 @@
-//! A shader that renders a mesh multiple times in one draw call.
-
 use bevy::{
-    color::palettes::css::SILVER,
     core_pipeline::core_3d::Transparent3d,
-    dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
-    ecs::{
-        query::QueryItem,
-        system::{lifetimeless::*, SystemParamItem},
-    },
+    ecs::system::{lifetimeless::*, SystemParamItem},
     pbr::{
         MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
@@ -22,154 +15,36 @@ use bevy::{
         },
         render_resource::*,
         renderer::RenderDevice,
-        view::{ExtractedView, NoFrustumCulling},
+        view::ExtractedView,
         Extract, Render, RenderApp, RenderSet,
     },
 };
+
 use bytemuck::{Pod, Zeroable};
-
-fn main() {
-    let mut app = App::new();
-    app.add_plugins((DefaultPlugins, CustomMaterialPlugin))
-        .add_plugins(FpsOverlayPlugin {
-            config: FpsOverlayConfig {
-                text_config: TextStyle {
-                    font_size: 20.0,
-                    color: Color::WHITE,
-                    font: default(),
-                },
-            },
-        });
-    app.add_systems(Startup, setup).run();
-    // app.add_systems(Startup, setup_simple).run();
-}
-
-const MAX_SIZE: u32 = 200;
-
-fn setup_simple(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.5));
-    for x in 1..=MAX_SIZE {
-        for y in 1..=MAX_SIZE {
-            let x = x as f32 / MAX_SIZE as f32;
-            let y = y as f32 / MAX_SIZE as f32;
-
-            commands.spawn(PbrBundle {
-                mesh: mesh.clone(),
-                transform: Transform::from_xyz(
-                    x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                    y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                    0.0,
-                ),
-                material: materials.add(Color::hsla(x as f32 * 360., y as f32, 0.5, 1.0)),
-                ..Default::default()
-            });
-        }
-    }
-
-    // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
-        projection: Projection::Perspective(PerspectiveProjection {
-            fov: 10.0,
-            ..Default::default()
-        }),
-        ..Default::default()
-    });
-}
-
-fn setup(mut commands: Commands, mesh_handle: Res<MeshHandle>) {
-    let frame = commands
-        .spawn((
-            mesh_handle.0.clone(),
-            SpatialBundle::INHERITED_IDENTITY,
-            Frame,
-        ))
-        .id();
-    for bundle in (1..=MAX_SIZE)
-        .flat_map(|x| {
-            (1..=MAX_SIZE).map(move |y| (x as f32 / MAX_SIZE as f32, y as f32 / MAX_SIZE as f32))
-        })
-        .map(|(x, y)| Event {
-            position: Vec3::new(
-                x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-                0.0,
-            ),
-            color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-        })
-    {
-        commands.spawn(bundle).set_parent(frame);
-    }
-    // commands.spawn((
-    //     meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
-    //     SpatialBundle::INHERITED_IDENTITY,
-    //     InstanceMaterialData(
-    //         (1..=MAX_SIZE)
-    //             .flat_map(|x| {
-    //                 (1..=MAX_SIZE)
-    //                     .map(move |y| (x as f32 / MAX_SIZE as f32, y as f32 / MAX_SIZE as f32))
-    //             })
-    //             .map(|(x, y)| InstanceData {
-    //                 position: Vec3::new(
-    //                     x * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-    //                     y * MAX_SIZE as f32 - MAX_SIZE as f32 / 2.0,
-    //                     0.0,
-    //                 ),
-    //                 scale: 1.0,
-    //                 color: LinearRgba::from(Color::hsla(x * 360., y, 0.5, 1.0)).to_f32_array(),
-    //             })
-    //             .collect(),
-    //     ),
-    //     // NOTE: Frustum culling is done based on the Aabb of the Mesh and the GlobalTransform.
-    //     // As the cube is at the origin, if its Aabb moves outside the view frustum, all the
-    //     // instanced cubes will be culled.
-    //     // The InstanceMaterialData contains the 'GlobalTransform' information for this custom
-    //     // instancing, and that is not taken into account with the built-in frustum culling.
-    //     // We must disable the built-in frustum culling by adding the `NoFrustumCulling` marker
-    //     // component to avoid incorrect culling.
-    //     NoFrustumCulling,
-    // ));
-
-    // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
-        projection: Projection::Orthographic(OrthographicProjection {
-            near: -1000.0,
-            far: 1000.0,
-            ..Default::default()
-        }),
-        ..Default::default()
-    });
-}
-
 #[derive(Component, Deref, Clone, ExtractComponent)]
-struct InstanceMaterialData(Vec<InstanceData>);
+pub struct InstanceMaterialData(Vec<InstanceData>);
 
 #[derive(Component)]
-struct Event {
-    position: Vec3,
-    color: [f32; 4],
+pub struct Event {
+    pub position: Vec3,
+    pub color: [f32; 4],
 }
 
 #[derive(Component)]
-struct Frame;
+pub struct Frame;
 
-struct CustomMaterialPlugin;
+pub struct CustomMaterialPlugin;
 
 #[derive(Resource)]
-struct MeshHandle(Handle<Mesh>);
+pub struct MeshHandle(pub Handle<Mesh>);
 
 impl Plugin for CustomMaterialPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
+        // app.add_plugins(ExtractComponentPlugin::<InstanceMaterialData>::default());
         let handle = app
             .world_mut()
             .resource_mut::<Assets<Mesh>>()
-            .add(Cuboid::default());
+            .add(Cuboid::from_size(Vec3::splat(1.0)));
         app.insert_resource(MeshHandle(handle));
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawCustom>()
@@ -189,7 +64,7 @@ impl Plugin for CustomMaterialPlugin {
     }
 }
 
-fn extract_events(
+pub fn extract_events(
     mut commands: Commands,
     query: Extract<Query<(Entity, &Children), With<Frame>>>,
     events: Extract<Query<&Event>>,
@@ -216,7 +91,7 @@ fn extract_events(
 
 #[derive(Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
-struct InstanceData {
+pub struct InstanceData {
     position: Vec3,
     scale: f32,
     color: [f32; 4],
