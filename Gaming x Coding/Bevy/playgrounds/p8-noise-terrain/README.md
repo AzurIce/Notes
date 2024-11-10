@@ -379,9 +379,100 @@ fn chunk_manage_system(
 
 可以看到，在抵达边界处时由于生成新的区块的 Mesh 需要消耗一定时间，会出现明显的卡顿。
 
-## 四、优化
+## 四、优化 —— 异步
 
-// TODO
+一种解决方式是将地形生成的任务作为一个 Task 在后台执行。
+
+Bevy 提供了一个特殊的 `AsyncComputeTaskPool`，可以向其中生成在后台任务线程中执行的任务，每一个任务被生成时都会返回一个对应的 `Task` handle，可以用于检查任务是否完成。
+
+首先，将生成 Mesh 的部分抽离到一个单独的函数中：
+
+```rust
+fn generate_chunk(chunk: IVec2) -> Mesh {
+    // ...
+}
+```
+
+然后需要一个全局的资源来追踪正在生成的区块：
+
+```rust
+#[derive(Resource, Default)]
+struct GeneratingChunk(HashMap<IVec2, Task<Mesh>>);
+
+fn main() {
+    App::new()
+        .init_resource::<TerrainStore>()
+        .init_resource::<GeneratingChunk>()
+        // ...
+}
+```
+
+之后修改原先的 Command 只负责向 `AsyncCompoteTaskPool` 中生成任务：
+
+```rust
+impl Command for SpawnTerrain {
+    fn apply(self, world: &mut World) {
+        // ...
+        let mut generating_chunk = world
+            .get_resource_mut::<GeneratingChunk>()
+            .expect("GeneratingChunk to be available");
+
+        if generating_chunk.0.get(&self.0).is_some() {
+            warn!("mesh {} is already generating", self.0);
+            return;
+        }
+
+        let task_pool = AsyncComputeTaskPool::get();
+        let task = task_pool.spawn(async move { generate_chunk(self.0) });
+        generating_chunk.0.insert(self.0, task);
+    }
+}
+```
+
+之后添加一个系统来接受完成的任务，并用得到的 Mesh 生成 PbrBundle：
+
+```rust
+fn receive_generated_chunk_system(
+    mut commands: Commands,
+    mut generating_chunk: ResMut<GeneratingChunk>,
+    mut terrain_store: ResMut<TerrainStore>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    generating_chunk.0.retain(|chunk, task| {
+        let status = block_on(future::poll_once(task));
+        let retain = status.is_none();
+
+        if let Some(chunk_mesh) = status {
+            let mesh_size = 1000.;
+
+            let mesh = meshes.add(chunk_mesh);
+            let material = materials.add(Color::WHITE);
+
+            terrain_store.0.insert(*chunk, mesh.clone());
+            commands.spawn((
+                PbrBundle {
+                    mesh,
+                    material,
+                    transform: Transform::from_xyz(
+                        chunk.x as f32 * mesh_size,
+                        0.,
+                        chunk.y as f32 * mesh_size,
+                    ),
+                    ..default()
+                },
+                Terrain,
+            ));
+        }
+
+        retain
+    });
+}
+```
+
+![async](assets/async.gif)
+
+现在可以发现卡顿已经被大幅降低。
 
 
 

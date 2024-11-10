@@ -10,6 +10,7 @@ use bevy::{
         settings::{RenderCreation, WgpuFeatures, WgpuSettings},
         RenderPlugin,
     },
+    tasks::{block_on, futures_lite::future, AsyncComputeTaskPool, Task},
     utils::HashMap,
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
@@ -19,6 +20,7 @@ use std::f32::consts::PI;
 fn main() {
     App::new()
         .init_resource::<TerrainStore>()
+        .init_resource::<GeneratingChunk>()
         .add_plugins((
             DefaultPlugins.set(RenderPlugin {
                 render_creation: RenderCreation::Automatic(WgpuSettings {
@@ -40,6 +42,7 @@ fn main() {
                 player_control_system,
                 sync_player_camera_system,
                 chunk_manage_system,
+                receive_generated_chunk_system,
             ),
         )
         .run();
@@ -94,7 +97,101 @@ fn startup(
 #[derive(Resource, Default)]
 struct TerrainStore(HashMap<IVec2, Handle<Mesh>>);
 
+#[derive(Resource, Default)]
+struct GeneratingChunk(HashMap<IVec2, Task<Mesh>>);
+
+fn receive_generated_chunk_system(
+    mut commands: Commands,
+    mut generating_chunk: ResMut<GeneratingChunk>,
+    mut terrain_store: ResMut<TerrainStore>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    generating_chunk.0.retain(|chunk, task| {
+        let status = block_on(future::poll_once(task));
+        let retain = status.is_none();
+
+        if let Some(chunk_mesh) = status {
+            let mesh_size = 1000.;
+
+            let mesh = meshes.add(chunk_mesh);
+            let material = materials.add(Color::WHITE);
+
+            terrain_store.0.insert(*chunk, mesh.clone());
+            commands.spawn((
+                PbrBundle {
+                    mesh,
+                    material,
+                    transform: Transform::from_xyz(
+                        chunk.x as f32 * mesh_size,
+                        0.,
+                        chunk.y as f32 * mesh_size,
+                    ),
+                    ..default()
+                },
+                Terrain,
+            ));
+        }
+
+        retain
+    });
+}
+
 struct SpawnTerrain(IVec2);
+
+fn generate_chunk(chunk: IVec2) -> Mesh {
+    let mesh_size = 1000.;
+    let terrain_height = 100.;
+    let noise = BasicMulti::<Perlin>::new(900);
+
+    let mut terrain = Mesh::from(
+        Plane3d::default()
+            .mesh()
+            .size(mesh_size, mesh_size)
+            .subdivisions(1000),
+    );
+
+    if let Some(VertexAttributeValues::Float32x3(positions)) =
+        terrain.attribute_mut(Mesh::ATTRIBUTE_POSITION)
+    {
+        for pos in positions.iter_mut() {
+            let val = noise.get([
+                (pos[0] as f64 + (mesh_size as f64 * chunk.x as f64)) / 300.,
+                (pos[2] as f64 + (mesh_size as f64 * chunk.y as f64)) / 300.,
+            ]);
+
+            pos[1] = val as f32 * terrain_height;
+        }
+
+        let colors: Vec<[f32; 4]> = positions
+            .iter()
+            .map(|[_, g, _]| {
+                let g = *g / terrain_height * 2.;
+
+                if g > 0.8 {
+                    (Color::LinearRgba(LinearRgba {
+                        red: 20.,
+                        green: 20.,
+                        blue: 20.,
+                        alpha: 1.,
+                    }))
+                    .to_linear()
+                    .to_f32_array()
+                } else if g > 0.3 {
+                    Color::from(AMBER_800).to_linear().to_f32_array()
+                } else if g < -0.8 {
+                    Color::BLACK.to_linear().to_f32_array()
+                } else {
+                    (Color::from(GREEN_400).to_linear()).to_f32_array()
+                }
+            })
+            .collect();
+        terrain.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    }
+    terrain.compute_normals();
+
+    terrain
+}
 
 impl Command for SpawnTerrain {
     fn apply(self, world: &mut World) {
@@ -111,84 +208,18 @@ impl Command for SpawnTerrain {
             return;
         };
 
-        let mesh_size = 1000.;
-        let terrain_height = 100.;
-        let noise = BasicMulti::<Perlin>::default();
+        let mut generating_chunk = world
+            .get_resource_mut::<GeneratingChunk>()
+            .expect("GeneratingChunk to be available");
 
-        let mut terrain = Mesh::from(
-            Plane3d::default()
-                .mesh()
-                .size(mesh_size, mesh_size)
-                .subdivisions(1000),
-        );
-
-        if let Some(VertexAttributeValues::Float32x3(positions)) =
-            terrain.attribute_mut(Mesh::ATTRIBUTE_POSITION)
-        {
-            for pos in positions.iter_mut() {
-                let val = noise.get([
-                    (pos[0] as f64 + (mesh_size as f64 * self.0.x as f64)) / 300.,
-                    (pos[2] as f64 + (mesh_size as f64 * self.0.y as f64)) / 300.,
-                ]);
-
-                pos[1] = val as f32 * terrain_height;
-            }
-
-            let colors: Vec<[f32; 4]> = positions
-                .iter()
-                .map(|[_, g, _]| {
-                    let g = *g / terrain_height * 2.;
-
-                    if g > 0.8 {
-                        (Color::LinearRgba(LinearRgba {
-                            red: 20.,
-                            green: 20.,
-                            blue: 20.,
-                            alpha: 1.,
-                        }))
-                        .to_linear()
-                        .to_f32_array()
-                    } else if g > 0.3 {
-                        Color::from(AMBER_800).to_linear().to_f32_array()
-                    } else if g < -0.8 {
-                        Color::BLACK.to_linear().to_f32_array()
-                    } else {
-                        (Color::from(GREEN_400).to_linear()).to_f32_array()
-                    }
-                })
-                .collect();
-            terrain.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+        if generating_chunk.0.get(&self.0).is_some() {
+            warn!("mesh {} is already generating", self.0);
+            return;
         }
-        terrain.compute_normals();
 
-        let mesh = world
-            .get_resource_mut::<Assets<Mesh>>()
-            .expect("meshes db to be available")
-            .add(terrain);
-        let material = world
-            .get_resource_mut::<Assets<StandardMaterial>>()
-            .expect("StandardMaterial db to be available")
-            .add(Color::WHITE);
-
-        world
-            .get_resource_mut::<TerrainStore>()
-            .expect("TerrainStore to be available")
-            .0
-            .insert(self.0, mesh.clone());
-
-        world.spawn((
-            PbrBundle {
-                mesh,
-                material,
-                transform: Transform::from_xyz(
-                    self.0.x as f32 * mesh_size,
-                    0.,
-                    self.0.y as f32 * mesh_size,
-                ),
-                ..default()
-            },
-            Terrain,
-        ));
+        let task_pool = AsyncComputeTaskPool::get();
+        let task = task_pool.spawn(async move { generate_chunk(self.0) });
+        generating_chunk.0.insert(self.0, task);
     }
 }
 
