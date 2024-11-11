@@ -112,7 +112,7 @@ fn receive_generated_chunk_system(
         let retain = status.is_none();
 
         if let Some(chunk_mesh) = status {
-            let mesh_size = 1000.;
+            let chunk_size = 100.;
 
             let mesh = meshes.add(chunk_mesh);
             let material = materials.add(Color::WHITE);
@@ -123,9 +123,9 @@ fn receive_generated_chunk_system(
                     mesh,
                     material,
                     transform: Transform::from_xyz(
-                        chunk.x as f32 * mesh_size,
+                        chunk.x as f32 * chunk_size,
                         0.,
-                        chunk.y as f32 * mesh_size,
+                        chunk.y as f32 * chunk_size,
                     ),
                     ..default()
                 },
@@ -140,15 +140,15 @@ fn receive_generated_chunk_system(
 struct SpawnTerrain(IVec2);
 
 fn generate_chunk(chunk: IVec2) -> Mesh {
-    let mesh_size = 1000.;
+    let chunk_size = 100.;
     let terrain_height = 100.;
     let noise = BasicMulti::<Perlin>::new(900);
 
     let mut terrain = Mesh::from(
         Plane3d::default()
             .mesh()
-            .size(mesh_size, mesh_size)
-            .subdivisions(1000),
+            .size(chunk_size, chunk_size)
+            .subdivisions(100),
     );
 
     if let Some(VertexAttributeValues::Float32x3(positions)) =
@@ -156,8 +156,8 @@ fn generate_chunk(chunk: IVec2) -> Mesh {
     {
         for pos in positions.iter_mut() {
             let val = noise.get([
-                (pos[0] as f64 + (mesh_size as f64 * chunk.x as f64)) / 300.,
-                (pos[2] as f64 + (mesh_size as f64 * chunk.y as f64)) / 300.,
+                (pos[0] as f64 + (chunk_size as f64 * chunk.x as f64)) / 300.,
+                (pos[2] as f64 + (chunk_size as f64 * chunk.y as f64)) / 300.,
             ]);
 
             pos[1] = val as f32 * terrain_height;
@@ -231,7 +231,7 @@ fn chunk_manage_system(
     terrain_entities: Query<(Entity, &Handle<Mesh>), With<Terrain>>,
 ) {
     // same as mesh_size for us
-    let chunk_size = 1000.;
+    let chunk_size = 100.;
 
     let Ok(transform) = player.get_single() else {
         warn!("no player!");
@@ -240,20 +240,27 @@ fn chunk_manage_system(
 
     // Convert from world location to chunk index
     let xz = (transform.translation.xz() / chunk_size).trunc().as_ivec2();
+    let chunk_distance = 14;
 
     if *current_chunk != xz || terrain_store.0.get(&xz).is_none() {
         *current_chunk = xz;
-        let chunks_to_render = [
-            *current_chunk + IVec2::new(-1, -1),
-            *current_chunk + IVec2::new(-1, 0),
-            *current_chunk + IVec2::new(-1, 1),
-            *current_chunk + IVec2::new(0, -1),
-            *current_chunk + IVec2::new(0, 0),
-            *current_chunk + IVec2::new(0, 1),
-            *current_chunk + IVec2::new(1, -1),
-            *current_chunk + IVec2::new(1, 0),
-            *current_chunk + IVec2::new(1, 1),
-        ];
+
+        let chunks_to_render = (-chunk_distance..chunk_distance)
+            .flat_map(|i| (-chunk_distance..chunk_distance).map(move |j| (i, j)))
+            // .filter(|&(i, j)| i != 0 || j != 0)
+            .map(|(i, j)| *current_chunk + IVec2::new(i, j))
+            .collect::<Vec<_>>();
+        // let chunks_to_render = [
+        //     *current_chunk + IVec2::new(-1, -1),
+        //     *current_chunk + IVec2::new(-1, 0),
+        //     *current_chunk + IVec2::new(-1, 1),
+        //     *current_chunk + IVec2::new(0, -1),
+        //     *current_chunk + IVec2::new(0, 0),
+        //     *current_chunk + IVec2::new(0, 1),
+        //     *current_chunk + IVec2::new(1, -1),
+        //     *current_chunk + IVec2::new(1, 0),
+        //     *current_chunk + IVec2::new(1, 1),
+        // ];
         let chunks_to_despawn: Vec<(IVec2, Handle<Mesh>)> = terrain_store
             .0
             .extract_if(|key, _| !chunks_to_render.contains(&key))

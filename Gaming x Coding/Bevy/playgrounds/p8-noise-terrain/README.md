@@ -474,9 +474,73 @@ fn receive_generated_chunk_system(
 
 现在可以发现卡顿已经被大幅降低。
 
+但是卡顿依然存在，推测可能是生成过大的 Mesh 会消耗一定时间。不过具体的原因需要用更加科学的方式来分析。
+
+## 五、Profiling
+
+Bevy 提供了大量对 Bevy 应用进行性能记录的方式[^1]，具体使用方式略。这是记录到的信息：
+
+![image-20241111144627419](./assets/image-20241111144627419.png)
+
+观察中间的极端空白空间：
+
+![image-20241111145320759](./assets/image-20241111145320759.png)
+
+可以发现时间消耗在将 Mesh 上传到 GPU 并进行准备。这个结论是合理的，因为地形生成是在 CPU 端完成的，而一个被 1000 次划分的 Mesh 具有 1001x1001x2 = 2004002 个三角形，确实是很庞大的数据。
+
+将划分数改为 100 可以发现卡顿消失，但是带来的问题就是地形变得模糊。
+
+> [What's the best way to load new mesh assets after Startup without blocking the main thread? : r/bevy](https://www.reddit.com/r/bevy/comments/1gi2o66/whats_the_best_way_to_load_new_mesh_assets_after/)
+
+## 五、优化
+
+### 1. 缩小区块大小
+
+将区块大小缩小，保持划分数与大小的比例（分辨率），那么每一个 Chunk 的 Mesh 大小将会大大缩小，上传 GPU 的速度将会加快。
+
+修改 Mesh 的大小为 100x100，`subdivisions` 为 100，然后按照区块距离更新区块：
+
+```rust
+let chunk_distance = 9;
+
+let chunks_to_render = (-chunk_distance..chunk_distance)
+    .flat_map(|i| (-chunk_distance..chunk_distance).map(move |j| (i, j)))
+    .map(|(i, j)| *current_chunk + IVec2::new(i, j))
+    .collect::<Vec<_>>();
+    // let chunks_to_render = [
+    //     *current_chunk + IVec2::new(-1, -1),
+    //     *current_chunk + IVec2::new(-1, 0),
+    //     *current_chunk + IVec2::new(-1, 1),
+    //     *current_chunk + IVec2::new(0, -1),
+    //     *current_chunk + IVec2::new(0, 0),
+    //     *current_chunk + IVec2::new(0, 1),
+    //     *current_chunk + IVec2::new(1, -1),
+    //     *current_chunk + IVec2::new(1, 0),
+    //     *current_chunk + IVec2::new(1, 1),
+    // ];
+```
+
+![smaller-chunk](assets/smaller-chunk.gif)
+
+可以看到卡顿几乎消失（但是还是有一点）。
+
+虽然随着区块大小的减小，跨越区块时更新的区块数会增多，但是每次更新的区块整体变为了一个更窄的“窄条”。
+
+![image-20241111153838648](./assets/image-20241111153838648.png)
+
+再通过 profiling 工具可以看到卡顿依旧存在：
+
+![image-20241111154215189](./assets/image-20241111154215189.png)
+
+### 2. 限制每 tick 实际生成的区块数量
+
+// TODO
+
 
 
 ## 参考
+
+[^1]: [bevy/docs/profiling.md at main · bevyengine/bevy](https://github.com/bevyengine/bevy/blob/main/docs/profiling.md)
 
 [Build low poly terrain from planes meshes in Bevy - YouTube](https://www.youtube.com/watch?v=Ky43Od2Ons8)
 
