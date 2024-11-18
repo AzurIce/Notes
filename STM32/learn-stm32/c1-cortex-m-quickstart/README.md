@@ -1,5 +1,39 @@
 # c1-cortex-m-quickstart
 
+**PART1**：`p1-hello`：基于 `cortex_m` 这个 **Micro-architecture Crate** 编写的在微控制器上运行的 Hello World。
+
+然而只使用 Micro-architecture 库，只能做到执行普通的 Rust 代码并在 RAM 内移动数据。
+
+如果想要做到信息的输入输出（比如闪烁一个 LED、检测按钮按下等）就需要访问 **外围设备** 以及他们的 Memory Mapped Registers。
+
+<img src="./assets/crates.png" alt="img" style="zoom: 80%;" />
+
+底层的库：
+
+- Micro-architecture Crate，如 [cortex-m - crates.io: Rust Package Registry](https://crates.io/crates/cortex-m)：
+
+    可以启用/禁用处理器的中断、访问 SysTick 外围设备等（都是 Cortex-M 架构处理器具有的功能）
+
+- Peripheral Access Crate，如 [stm32f1 - crates.io: Rust Package Registry](https://crates.io/crates/stm32f1)：
+
+    外围设备访问，可以直接访问到对应的寄存器。
+
+**PART2**：`p2-cortex-syst`：访问 *Cortex-M* 的 *SYST* 外围设备来实现一个 1 秒的等待
+
+前面提到了 *Cortex-M* 处理器也自带一些外围设备，这个 *SYST* 就是个例子。
+
+**PART3**：`p3-pac`：使用 *stm32f1* 这个 **Peripheral Access Crate** 来点亮开发板的 LED
+
+这就是在 STM32  中 *Cortex-M* 处理器以外的外围设备了。
+
+通过 RCC（Reset and Clock Control）启用 GPIOA，然后通过 GPIOA 的 CR（Configuration Register）来设置针脚模式（输出）以及配置（推挽输出），最后通过针脚的 BSRR（Bit Set/Reset Register）来设置针脚的输出位为 `1` 点亮 LED。
+
+然后用 **PART2** 的等待方式，配上设置输出位为 `0` 和 `1` 就可以实现 1Hz 的 LED 闪烁。
+
+**PART4**：`p4-hal`：使用 *stm32f1xx-hal* 这个 **HAL Crate** 来重写 **PART3**。
+
+---
+
 ## 一、p1-hello
 
 基于 *cortex-m* 库的 Hello World，以及基础调试操作。
@@ -43,25 +77,25 @@ MEMORY
 然后就是修改一下 `main.rs`，打印个 `Hello, world!`：
 
 ```rust
-#![no_std]
-#![no_main]
+//! Prints "Hello, world!" on the host console using semihosting
 
-use cortex_m_semihosting::hprintln;
-// pick a panicking behavior
-use panic_halt as _; // you can put a breakpoint on `rust_begin_unwind` to catch panics
-// use panic_abort as _; // requires nightly
-// use panic_itm as _; // logs messages over ITM; requires ITM support
-// use panic_semihosting as _; // logs messages to the host stderr; requires a debugger
+#![no_main]
+#![no_std]
+
+use panic_halt as _;
 
 use cortex_m_rt::entry;
+use cortex_m_semihosting::{debug, hprintln};
 
 #[entry]
 fn main() -> ! {
     hprintln!("Hello, world!");
 
-    loop {
-        // your code goes here
-    }
+    // exit QEMU
+    // NOTE do not run this on hardware; it can corrupt OpenOCD state
+    // debug::exit(debug::EXIT_SUCCESS);
+
+    loop {}
 }
 
 ```
@@ -176,10 +210,10 @@ Remote debugging using :3333
 ```
 (gdb) load
 Loading section .vector_table, size 0x400 lma 0x8000000
-Loading section .text, size 0xa24 lma 0x8000400
-Loading section .rodata, size 0x624 lma 0x8000e24
-Start address 0x08000400, load size 5192
-Transfer rate: 9 KB/sec, 1730 bytes/write.
+Loading section .text, size 0x6a8 lma 0x8000400
+Loading section .rodata, size 0x374 lma 0x8000aa8
+Start address 0x08000400, load size 3612
+Transfer rate: 8 KB/sec, 1204 bytes/write.
 ```
 
 This program uses semihosting so before we do any semihosting call we have to tell OpenOCD to enable semihosting. You can send commands to OpenOCD using the `monitor` command.
@@ -193,12 +227,12 @@ semihosting is enabled
 
 ```
 (gdb) break main
-Breakpoint 1 at 0x8000440: file src/main.rs, line 13.
-Note: automatically using hardware breakpoints for read-only addresses.
+Note: breakpoint 4 also set at pc 0x8000440.
+Breakpoint 5 at 0x8000440: file src/main.rs, line 13.
 (gdb) continue
 Continuing.
 
-Breakpoint 1, p1_cortex_m_quickstart::__cortex_m_rt_main_trampoline () at src/main.rs:13
+Breakpoint 4, c1_cortex_m_quickstart::__cortex_m_rt_main_trampoline () at src/main.rs:13      
 13      #[entry]
 ```
 
@@ -207,18 +241,18 @@ Breakpoint 1, p1_cortex_m_quickstart::__cortex_m_rt_main_trampoline () at src/ma
 ```
 (gdb) step
 halted: PC: 0x08000444
-p1_cortex_m_quickstart::__cortex_m_rt_main () at src/main.rs:15
+c1_cortex_m_quickstart::__cortex_m_rt_main () at src/main.rs:15
 15          hprintln!("Hello, world!");
 ```
 
-最后，用 `next` 来恢复程序的运行，应该可以看到 openocd 打出了 `Hello, world!`：
+最后，用 `next` 来向前一步，应该可以看到 openocd 打出了 `Hello, world!`：
 
 ```
 (gdb) next
 halted: PC: 0x0800044c
 halted: PC: 0x08000450
 halted: PC: 0x08000452
-halted: PC: 0x0800099e
+halted: PC: 0x0800064c
 halted: PC: 0x08000458
 17          loop {
 ```
@@ -227,7 +261,7 @@ halted: PC: 0x08000458
 > Info : halted: PC: 0x0800044c
 > Info : halted: PC: 0x08000450
 > Info : halted: PC: 0x08000452
-> Info : halted: PC: 0x0800099e
+> Info : halted: PC: 0x0800064c
 > Hello, world!
 > Info : halted: PC: 0x08000458
 > ```
@@ -241,8 +275,7 @@ A debugging session is active.
         Inferior 1 [Remote target] will be detached.
 
 Quit anyway? (y or n) y
-Detaching from program: F:\Notes\STM32\learn-stm32\p1-cortex-m-quickstart\target\thumbv7m-none-eabi\debug\p1-cortex-m-quickstart, Remote target
-Ending remote debugging.
+Detaching from program: F:\Notes\STM32\learn-stm32\c1-cortex-m-quickstart\target\thumbv7m-none-eabi\debug\c1-cortex-m-quickstart, Remote target
 [Inferior 1 (Remote target) detached]
 ```
 
@@ -316,11 +349,11 @@ runner = "arm-none-eabi-gdb -x openocd.gdb"
 ```
 
 ```terminal
-PS > cargo run
+PS > cargo run --example p1-hello
 // ...
-warning: `p1-cortex-m-quickstart` (bin "p1-cortex-m-quickstart") generated 1 warning
+warning: `p1-hello` (bin "p1-cortex-m-quickstart") generated 1 warning
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s
-     Running `arm-none-eabi-gdb -q -x openocd.gdb target\thumbv7m-none-eabi\debug\p1-cortex-m-quickstart`
+     Running `arm-none-eabi-gdb -q -x openocd.gdb target\thumbv7m-none-eabi\debug\p1-hello`
 Reading symbols from target\thumbv7m-none-eabi\debug\p1-cortex-m-quickstart...
 
 warning: could not convert 'main' from the host encoding (CP1252) to UTF-32.
@@ -344,6 +377,20 @@ halted: PC: 0x08000402
 (gdb) 
 ```
 
+## 一些必要概念
+
+首先要了解一个 SoC 的概念（System on Chip），一块芯片中集成了处理器、内存、IO 接口等，就像是一台完整的电脑，不过都封装在一个芯片中。
+
+<img src="./assets/image-20241118131825994.png" alt="image-20241118131825994" style="zoom: 67%;" />
+
+也就是说：
+
+- STM32 芯片中包含 **微处理器** 以及各种 **外围设备**
+- 微处理器中同样具有一些 **外围设备**
+
+<img src="./assets/image-20241118131957860.png" alt="image-20241118131957860" style="zoom: 67%;" />
+
+
 ## 二、p2-cortex-syst
 
 通过 *cortex_m* 的 syst 外围设备用 `while` 来模拟了一个 1 秒的等待：
@@ -362,7 +409,7 @@ use cortex_m_semihosting::{debug, hprintln};
 
 #[entry]
 fn main() -> ! {
-    hprintln!("Hello, world!").unwrap();
+    hprintln!("Hello, world!");
 
     let peripherals = Peripherals::take().unwrap();
     let mut syst = peripherals.SYST;
@@ -373,7 +420,7 @@ fn main() -> ! {
     syst.enable_counter();
     while !syst.has_wrapped() {}
 
-    hprintln!("Hello, world! after 1 second").unwrap();
+    hprintln!("Hello, world! after 1 second");
 
     // exit QEMU
     // NOTE do not run this on hardware; it can corrupt OpenOCD state
@@ -402,7 +449,6 @@ fn main() -> ! {
 #![no_main]
 #![no_std]
 
-use cortex_m_semihosting::hprintln;
 #[allow(unused_extern_crates)]
 use panic_halt as _;
 
@@ -436,13 +482,61 @@ fn main() -> ! {
             .cnf6().push_pull()
         );
 
-    // set PA6 to high
-    p.GPIOA.bsrr.write(|w| w.bs6().set_bit());
-
     loop {
         // busy wait until the timer wraps around
         while !syst.has_wrapped() {}
-        hprintln!(".").unwrap();
+        syst.clear_current();
+        // set PA6 to high
+        p.GPIOA.bsrr.write(|w| w.bs6().set_bit());
+
+        while !syst.has_wrapped() {}
+        syst.clear_current();
+        // set PA6 to low
+        p.GPIOA.bsrr.write(|w| w.br6().set_bit());
+    }
+}
+
+```
+
+## 四、p4-hal
+
+```rust
+//! Light up the LED on PA6 using PAC
+
+#![no_main]
+#![no_std]
+
+use nb::block;
+#[allow(unused_extern_crates)]
+use panic_halt as _;
+
+use cortex_m_rt::entry;
+use stm32f1xx_hal::{pac, prelude::*, timer::Timer};
+
+#[entry]
+fn main() -> ! {
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let p = pac::Peripherals::take().unwrap();
+
+    // Take ownership of the flash and rcc peripherals and convert them into HAL structs
+    let mut flash = p.FLASH.constrain();
+    let rcc = p.RCC.constrain();
+    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+
+    // Acquire the GPIOA peripheral and split it into individual GPIO pins
+    let mut gpioa = p.GPIOA.split();
+
+    // Define the pa6 as a push-pull output
+    let mut led = gpioa.pa6.into_push_pull_output(&mut gpioa.crl);
+    let mut timer = Timer::syst(cp.SYST, &clocks).counter_hz();
+    timer.start(1.Hz()).unwrap();
+
+    loop {
+        // busy wait until the timer wraps around
+        block!(timer.wait()).unwrap();
+        led.set_high();
+        block!(timer.wait()).unwrap();
+        led.set_low();
     }
 }
 

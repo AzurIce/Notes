@@ -1,4 +1,6 @@
 //! Prints "Hello, world!" on the host console using semihosting
+//! 
+//! Note that this example needs to disable stm32f1 and stm32f1xx-hal dependencies in Cargo.toml
 
 #![no_main]
 #![no_std]

@@ -4,7 +4,6 @@
 #![no_std]
 
 use nb::block;
-#[allow(unused_extern_crates)]
 use panic_halt as _;
 
 use cortex_m_rt::entry;

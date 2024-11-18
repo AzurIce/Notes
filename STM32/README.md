@@ -2,22 +2,13 @@
 
 ## 目录
 
-### 概述
-
-首先要了解一个 SoC 的概念（System on Chip），一块芯片中集成了处理器、内存、IO 接口等，就像是一台完整的电脑，不过都封装在一个芯片中。
-
-<img src="./assets/image-20241118131825994.png" alt="image-20241118131825994" style="zoom: 67%;" />
-
-也就是说：
-
-- STM32 芯片中包含 **微处理器** 以及各种 **外围设备**
-- 微处理器中同样具有一些 **外围设备**
-
-<img src="./assets/image-20241118131957860.png" alt="image-20241118131957860" style="zoom: 67%;" />
-
 ### [c1-cortex-m-quickstart](c1-cortex-m-quickstart/README.md)
 
-**PART1**：`p1-hello`：基于 `cortex_m` 这个 <font color="red">Micro-architecture Crate</font> 编写的在微控制器上运行的 Hello World。
+**PART1**：`p1-hello`：基于 `cortex_m` 这个 **Micro-architecture Crate** 编写的在微控制器上运行的 Hello World。（运行这个 `example` 需要注释掉 `Cargo.toml` 中的 `stm32f1` 和 `stm32f1xx-hal` 库）
+
+**PART2**：`p2-cortex-syst`：基于 `cortex_m` 这个 **Micro-architecture Crate** 访问 *Cortex-M* 的 *SYST* 外围设备来实现一个 1 秒的等待
+
+前面提到了 *Cortex-M* 处理器也自带一些外围设备，这个 *SYST* 就是个例子。
 
 然而只使用 Micro-architecture 库，只能做到执行普通的 Rust 代码并在 RAM 内移动数据。
 
@@ -35,11 +26,7 @@
 
     外围设备访问，可以直接访问到对应的寄存器。
 
-**PART2**：`p2-cortex-syst`：访问 *Cortex-M* 的 *SYST* 外围设备来实现一个 1 秒的等待
-
-前面提到了 *Cortex-M* 处理器也自带一些外围设备，这个 *SYST* 就是个例子。
-
-**PART3**：`p3-pac`：使用 *stm32f1* 这个 Peripheral Access Crate 来点亮开发板的 LED
+**PART3**：`p3-pac`：使用 *stm32f1* 这个 **Peripheral Access Crate** 来点亮开发板的 LED
 
 这就是在 STM32  中 *Cortex-M* 处理器以外的外围设备了。
 
@@ -48,6 +35,10 @@
 然后用 **PART2** 的等待方式，配上设置输出位为 `0` 和 `1` 就可以实现 1Hz 的 LED 闪烁。
 
 **PART4**：`p4-hal`：使用 *stm32f1xx-hal* 这个 HAL Crate 来重写 **PART3**。
+
+### [c2-tutorial-using-stm32f1xx-hal](c2-tutorial-using-stm32f1xx-hal/README.md)
+
+
 
 ## 芯片
 
