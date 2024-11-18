@@ -45,6 +45,10 @@
 
 通过 RCC（Reset and Clock Control）启用 GPIOA，然后通过 GPIOA 的 CR（Configuration Register）来设置针脚模式（输出）以及配置（推挽输出），最后通过针脚的 BSRR（Bit Set/Reset Register）来设置针脚的输出位为 `1` 点亮 LED。
 
+然后用 **PART2** 的等待方式，配上设置输出位为 `0` 和 `1` 就可以实现 1Hz 的 LED 闪烁。
+
+**PART4**：`p4-hal`：使用 *stm32f1xx-hal* 这个 HAL Crate 来重写 **PART3**。
+
 ## 芯片
 
 买了这块（STM32F103C8T6）：[【STM32入门教程】应该是全B站最好的STM32教程了_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV12v4y1y7uV)

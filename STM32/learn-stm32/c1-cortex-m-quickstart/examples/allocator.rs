@@ -38,7 +38,7 @@ fn main() -> ! {
     // Growable array allocated on the heap
     let xs = vec![0, 1, 2];
 
-    hprintln!("{:?}", xs).unwrap();
+    hprintln!("{:?}", xs);
 
     // exit QEMU
     // NOTE do not run this on hardware; it can corrupt OpenOCD state

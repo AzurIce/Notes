@@ -3,7 +3,6 @@
 #![no_main]
 #![no_std]
 
-use cortex_m_semihosting::hprintln;
 #[allow(unused_extern_crates)]
 use panic_halt as _;
 
@@ -37,12 +36,16 @@ fn main() -> ! {
             .cnf6().push_pull()
         );
 
-    // set PA6 to high
-    p.GPIOA.bsrr.write(|w| w.bs6().set_bit());
-
     loop {
         // busy wait until the timer wraps around
         while !syst.has_wrapped() {}
-        hprintln!(".").unwrap();
+        syst.clear_current();
+        // set PA6 to high
+        p.GPIOA.bsrr.write(|w| w.bs6().set_bit());
+
+        while !syst.has_wrapped() {}
+        syst.clear_current();
+        // set PA6 to low
+        p.GPIOA.bsrr.write(|w| w.br6().set_bit());
     }
 }

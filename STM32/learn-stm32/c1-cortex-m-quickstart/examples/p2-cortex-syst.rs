@@ -11,7 +11,7 @@ use cortex_m_semihosting::{debug, hprintln};
 
 #[entry]
 fn main() -> ! {
-    hprintln!("Hello, world!").unwrap();
+    hprintln!("Hello, world!");
 
     let peripherals = Peripherals::take().unwrap();
     let mut syst = peripherals.SYST;
@@ -22,7 +22,7 @@ fn main() -> ! {
     syst.enable_counter();
     while !syst.has_wrapped() {}
 
-    hprintln!("Hello, world! after 1 second").unwrap();
+    hprintln!("Hello, world! after 1 second");
 
     // exit QEMU
     // NOTE do not run this on hardware; it can corrupt OpenOCD state
