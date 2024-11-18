@@ -1,8 +1,8 @@
 # c1-cortex-m-quickstart
 
-## 一、基础 cortex-m Hello World
+## 一、p1-hello
 
-> `examples/p1-hello.rs`
+基于 *cortex-m* 库的 Hello World，以及基础调试操作。
 
 ### 1. 创建项目
 
@@ -344,4 +344,107 @@ halted: PC: 0x08000402
 (gdb) 
 ```
 
-## 二、
+## 二、p2-cortex-syst
+
+通过 *cortex_m* 的 syst 外围设备用 `while` 来模拟了一个 1 秒的等待：
+
+```rust
+//! Implement a delay of 1 second using systick and while loop
+
+#![no_main]
+#![no_std]
+
+use cortex_m::{peripheral::syst::SystClkSource, Peripherals};
+use panic_halt as _;
+
+use cortex_m_rt::entry;
+use cortex_m_semihosting::{debug, hprintln};
+
+#[entry]
+fn main() -> ! {
+    hprintln!("Hello, world!").unwrap();
+
+    let peripherals = Peripherals::take().unwrap();
+    let mut syst = peripherals.SYST;
+    syst.set_clock_source(SystClkSource::Core);
+    // 8 MHz according to 2.3.7 Clocks and startup of the datasheet
+    syst.set_reload(8_000_000);
+    syst.clear_current();
+    syst.enable_counter();
+    while !syst.has_wrapped() {}
+
+    hprintln!("Hello, world! after 1 second").unwrap();
+
+    // exit QEMU
+    // NOTE do not run this on hardware; it can corrupt OpenOCD state
+    // debug::exit(debug::EXIT_SUCCESS);
+
+    loop {}
+}
+
+```
+
+## 三、p3-pac
+
+通过 [stm32f1 - crates.io: Rust Package Registry](https://crates.io/crates/stm32f1) 访问 STM32 的外围设备。
+
+在 [assets/PCB原理图.pdf](assets/PCB原理图.pdf) 中可以找到开发板上 RGB LED 的部分：
+
+<img src="./assets/image-20241118143637278.png" alt="image-20241118143637278" style="zoom:50%;" />
+
+还可以捋着 PCB 上的线路对应到 STM32 的针脚上（什么盯针）：
+
+<img src="./assets/image-20241118145124468.png" alt="image-20241118145124468" style="zoom:67%;" />
+
+```rust
+//! Light up the LED on PA6 using PAC
+
+#![no_main]
+#![no_std]
+
+use cortex_m_semihosting::hprintln;
+#[allow(unused_extern_crates)]
+use panic_halt as _;
+
+use cortex_m::peripheral::syst::SystClkSource;
+use cortex_m_rt::entry;
+use stm32f1::stm32f103;
+
+#[entry]
+fn main() -> ! {
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let p = stm32f103::Peripherals::take().unwrap();
+
+    let mut syst = cp.SYST;
+    // configure the system timer to wrap around every second
+    syst.set_clock_source(SystClkSource::Core);
+    syst.set_reload(8_000_000); // 1s
+    syst.enable_counter();
+
+    // enable the GPIOA clocks
+    p.RCC
+        .apb2enr
+        .modify(|_, w| w.iopaen().set_bit());
+
+    // configure PA6 to output mode using push-pull
+    p.GPIOA
+        .crl
+        .modify(|_, w| 
+            // set PA6 to output mode
+            w.mode6().output()
+            // set PA6 to push-pull output
+            .cnf6().push_pull()
+        );
+
+    // set PA6 to high
+    p.GPIOA.bsrr.write(|w| w.bs6().set_bit());
+
+    loop {
+        // busy wait until the timer wraps around
+        while !syst.has_wrapped() {}
+        hprintln!(".").unwrap();
+    }
+}
+
+```
+

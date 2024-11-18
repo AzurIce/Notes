@@ -15,15 +15,15 @@
 
 <img src="./assets/image-20241118131957860.png" alt="image-20241118131957860" style="zoom: 67%;" />
 
-### [p1-cortex-m-quickstart](p1-cortex-m-quickstart/README.md)
+### [c1-cortex-m-quickstart](c1-cortex-m-quickstart/README.md)
 
-基于 `cortex_m` 库编写的在微控制器上运行的 Hello World。
+**PART1**：`p1-hello`：基于 `cortex_m` 这个 <font color="red">Micro-architecture Crate</font> 编写的在微控制器上运行的 Hello World。
 
 然而只使用 Micro-architecture 库，只能做到执行普通的 Rust 代码并在 RAM 内移动数据。
 
 如果想要做到信息的输入输出（比如闪烁一个 LED、检测按钮按下等）就需要访问 **外围设备** 以及他们的 Memory Mapped Registers。
 
-![img](./assets/crates.png)
+<img src="./assets/crates.png" alt="img" style="zoom: 80%;" />
 
 底层的库：
 
@@ -35,7 +35,15 @@
 
     外围设备访问，可以直接访问到对应的寄存器。
 
+**PART2**：`p2-cortex-syst`：访问 *Cortex-M* 的 *SYST* 外围设备来实现一个 1 秒的等待
 
+前面提到了 *Cortex-M* 处理器也自带一些外围设备，这个 *SYST* 就是个例子。
+
+**PART3**：`p3-pac`：使用 *stm32f1* 这个 Peripheral Access Crate 来点亮开发板的 LED
+
+这就是在 STM32  中 *Cortex-M* 处理器以外的外围设备了。
+
+通过 RCC（Reset and Clock Control）启用 GPIOA，然后通过 GPIOA 的 CR（Configuration Register）来设置针脚模式（输出）以及配置（推挽输出），最后通过针脚的 BSRR（Bit Set/Reset Register）来设置针脚的输出位为 `1` 点亮 LED。
 
 ## 芯片
 
@@ -66,13 +74,3 @@
     表示 LQFP 封装
 
 - **6** 表示标准工业级温度范围
-
-## Rust Crate 结构
-
-
-
-再往上一层是 HAL Crate：
-
-进一步的封装 [stm32-hal2 - crates.io: Rust Package Registry](https://crates.io/crates/stm32-hal2)
-
-再往上就是对于特定的开发板，比如 stm32f3-discovery：[crates.io: Rust Package Registry](https://crates.io/crates/stm32f3-discovery)
