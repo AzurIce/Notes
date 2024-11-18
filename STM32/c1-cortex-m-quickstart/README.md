@@ -63,7 +63,7 @@ target = "thumbv7m-none-eabi"        # Cortex-M3
 rustup target add thumbv7m-none-eabi
 ```
 
-根据芯片的内存布局修改 `memory.x`，（参考 [assets/stm32f103c8.pdf](assets/stm32f103c8.pdf) 中的 *4 Memory mapping*）调整 FLASH 和 RAM 的位置和大小：
+根据芯片的内存布局修改 `memory.x`，（参考 [../assets/stm32f103c8.pdf](../assets/stm32f103c8.pdf) 中的 *4 Memory mapping*）调整 FLASH 和 RAM 的位置和大小：
 
 ```
 MEMORY
@@ -435,7 +435,7 @@ fn main() -> ! {
 
 通过 [stm32f1 - crates.io: Rust Package Registry](https://crates.io/crates/stm32f1) 访问 STM32 的外围设备。
 
-在 [assets/PCB原理图.pdf](assets/PCB原理图.pdf) 中可以找到开发板上 RGB LED 的部分：
+在 [../assets/PCB原理图.pdf](../assets/PCB原理图.pdf) 中可以找到开发板上 RGB LED 的部分：
 
 <img src="./assets/image-20241118143637278.png" alt="image-20241118143637278" style="zoom:50%;" />
 

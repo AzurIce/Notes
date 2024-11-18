@@ -36,7 +36,7 @@
 
 **PART4**：`p4-hal`：使用 *stm32f1xx-hal* 这个 HAL Crate 来重写 **PART3**。
 
-### [c2-tutorial-using-stm32f1xx-hal](c2-tutorial-using-stm32f1xx-hal/README.md)
+### [c2-tutorial](c2-tutorial/README.md)
 
 
 

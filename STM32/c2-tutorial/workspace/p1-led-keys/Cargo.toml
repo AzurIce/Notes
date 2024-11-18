@@ -1,0 +1,22 @@
+[package]
+name = "p1-led-keys"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "p1-led-keys"
+test = false
+bench = false
+
+[dependencies]
+cortex-m.workspace = true
+cortex-m-rt.workspace = true
+cortex-m-semihosting.workspace = true
+stm32f1xx-hal.workspace = true
+panic-halt.workspace = true
+nb.workspace = true
+
+[profile.release]
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
