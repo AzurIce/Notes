@@ -14,7 +14,7 @@ fn main() -> ! {
 
     // exit QEMU
     // NOTE do not run this on hardware; it can corrupt OpenOCD state
-    debug::exit(debug::EXIT_SUCCESS);
+    // debug::exit(debug::EXIT_SUCCESS);
 
     loop {}
 }

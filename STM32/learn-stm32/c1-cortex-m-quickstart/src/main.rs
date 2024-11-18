@@ -12,7 +12,7 @@ use cortex_m_rt::entry;
 
 #[entry]
 fn main() -> ! {
-    hprintln!("Hello, world!");
+    hprintln!("Hello, world!").unwrap();
 
     loop {
         // your code goes here

@@ -1,5 +1,42 @@
 # STM32
 
+## 目录
+
+### 概述
+
+首先要了解一个 SoC 的概念（System on Chip），一块芯片中集成了处理器、内存、IO 接口等，就像是一台完整的电脑，不过都封装在一个芯片中。
+
+<img src="./assets/image-20241118131825994.png" alt="image-20241118131825994" style="zoom: 67%;" />
+
+也就是说：
+
+- STM32 芯片中包含 **微处理器** 以及各种 **外围设备**
+- 微处理器中同样具有一些 **外围设备**
+
+<img src="./assets/image-20241118131957860.png" alt="image-20241118131957860" style="zoom: 67%;" />
+
+### [p1-cortex-m-quickstart](p1-cortex-m-quickstart/README.md)
+
+基于 `cortex_m` 库编写的在微控制器上运行的 Hello World。
+
+然而只使用 Micro-architecture 库，只能做到执行普通的 Rust 代码并在 RAM 内移动数据。
+
+如果想要做到信息的输入输出（比如闪烁一个 LED、检测按钮按下等）就需要访问 **外围设备** 以及他们的 Memory Mapped Registers。
+
+![img](./assets/crates.png)
+
+底层的库：
+
+- Micro-architecture Crate，如 [cortex-m - crates.io: Rust Package Registry](https://crates.io/crates/cortex-m)：
+
+    可以启用/禁用处理器的中断、访问 SysTick 外围设备等（都是 Cortex-M 架构处理器具有的功能）
+
+- Peripheral Access Crate，如 [stm32f1 - crates.io: Rust Package Registry](https://crates.io/crates/stm32f1)：
+
+    外围设备访问，可以直接访问到对应的寄存器。
+
+
+
 ## 芯片
 
 买了这块（STM32F103C8T6）：[【STM32入门教程】应该是全B站最好的STM32教程了_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV12v4y1y7uV)
@@ -32,15 +69,7 @@
 
 ## Rust Crate 结构
 
-![img](./assets/crates.png)
 
-- Micro-architecture Crate：
-
-    对微处理器的低级访问，比如对于 Cortex-M：[cortex-m - crates.io: Rust Package Registry](https://crates.io/crates/cortex-m)
-
-- Peripheral Access Crate：
-
-    外围设备访问，比如对于 STM32F1：[stm32f1 - crates.io: Rust Package Registry](https://crates.io/crates/stm32f1)
 
 再往上一层是 HAL Crate：
 
