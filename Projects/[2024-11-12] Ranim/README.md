@@ -14,6 +14,69 @@ Python / OOP当然可以这么设计，虽然各种晚初始化的 field 和各�
 
 ### 渲染相关设计
 
+由于 *manim* 使用的是 *mordengl*，可以借助 **几何着色器** 来生成图元。
+
+因此，其 `VMobject` 存储了贝塞尔曲线的原始控制点和宽度、转角等参数，而后通过几何着色器生成实际用于渲染的三角形：
+
+```mermaid
+flowchart LR
+Object --变换--> Object
+Object --> GPU
+subgraph GPU
+direction LR
+	V((Vertex)) --> G((Geom)) --> F((Frag))
+end
+```
+
+但是这个方案对于 *ranim* 并不可行，因为 *wgpu* 并不支持几何着色器，因此「由贝塞尔曲线原始控制点生成三角形」这件事只能在实际的渲染 Pass 前单独完成：
+
+```mermaid
+flowchart LR
+Blueprint[Blueprint 结构] --> a[Object 对象] --解析--> b[Vertex 数据] --> GPU
+a --变换--> a
+subgraph GPU
+	direction LR
+	Vertex -->  Frag
+end
+```
+
+这也导致整个渲染架构的分层会不可避免地变多。在这个条件下还要满足「对象」的类型擦除，还要在对应渲染时还原出其对应使用的管线。
+
+定义 `Renderer` Trait 如下：
+
+
+
+定义 `Renderable` Trait 如下：
+
+```rust
+pub trait Renderable {
+    type Vertex;
+    fn parse(&self) -> Vec<Vertex>;
+}
+```
+
+
+
+设计出几种对象：
+
+- `Renderer` 渲染器，接收某一种输入类型
+
+- `RenderPipeline` 具有 `type Vertex`
+
+    因为每一个管线所能输入的顶点类型是唯一的
+
+- `Object` 具有 `type Renderer`
+
+    因为每一个被创建出的对象其渲染方式是唯一的
+
+- 
+
+每一个 `Vertex` 却可以由多种 `Pipeline` 渲染，
+
+- `Renderable<Vertex>`
+
+
+
 *wgpu* 的逻辑与 *morderngl* 有很大的差别，在 *wgpu* 下，我们更适合以 **资源** 的方式来去考虑各种结构。
 
 `Pipeline` 是资源，`BindGroup` 是资源，各种 `Buffer` 和 `Texture` 也是资源，在渲染管线中，真正的使用者是在实际进行渲染工作时使用的 `CommandEncoder` 以及 `RenderPass`，要想做出优雅的设计，必须捋清楚它们之间的关系。
