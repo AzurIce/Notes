@@ -20,20 +20,68 @@ Python / OOP当然可以这么设计，虽然各种晚初始化的 field 和各�
 
 ```mermaid
 flowchart LR
-Object --变换--> Object
-Object --> GPU
+VMobject --变换--> VMobject
+VMobject --> GPU
 subgraph GPU
 direction LR
 	V((Vertex)) --> G((Geom)) --> F((Frag))
 end
 ```
 
-但是这个方案对于 *ranim* 并不可行，因为 *wgpu* 并不支持几何着色器，因此「由贝塞尔曲线原始控制点生成三角形」这件事只能在实际的渲染 Pass 前单独完成：
+但是这个方案对于 *ranim* 并不可行，因为 *wgpu* 并不支持几何着色器，因此「由贝塞尔曲线原始控制点生成三角形」这件事只能在实际的渲染 Pass 前单独完成。
+
+
+
+在 *ranim* 中，一切可以被渲染、变换的对象被称作 **Rabject**（Ranim Object），它对应着是一个 Trait：
+
+```rust
+pub trait Rabject {
+    type RenderResource;
+
+    fn init_render_resource(ctx: &mut RanimContext, rabject: &Self) -> Self::RenderResource;
+
+    fn update_render_resource(
+        ctx: &mut RanimContext,
+        rabject: &Self,
+        render_resource: &mut Self::RenderResource,
+    );
+
+    fn render(ctx: &mut RanimContext, render_resource: &Self::RenderResource);
+}
+```
+
+目前，有如下几种 **Rabject**：
+
+- `VMobject`：Vectorized Mobject
+
+  其中存储的是路径，而非实际的三角形顶点。
+
+- ......
+
+对应有一个 **Blueprint** 的概念：
+
+```rust
+pub trait Blueprint<T: Rabject> {
+    fn build(&self) -> RabjectWithId<T>;
+}
+```
+
+比如 `VMobject` 有这些 **Blueprint**：`Arc`、`ArcBetweenPoints`、`Circle`、`Point`、`Polygon` 等。
+
+
+
+
 
 ```mermaid
 flowchart LR
-Blueprint[Blueprint 结构] --> a[Object 对象] --解析--> b[Vertex 数据] --> GPU
-a --变换--> a
+Blueprint[Blueprint 结构] --> RabjectWithId
+
+Rabject --解析--> b[Vertex 数据] --> GPU
+
+subgraph Rabject
+	RabjectWithId --extract--> ExtractedRabjectWithId
+end
+
 subgraph GPU
 	direction LR
 	Vertex -->  Frag
