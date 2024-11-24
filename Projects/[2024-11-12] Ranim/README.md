@@ -12,6 +12,146 @@ manim 的主要使用方式是通过 *manimgl* 命令从 py 文件中提取 Scen
 
 Python / OOP当然可以这么设计，虽然各种晚初始化的 field 和各种子类对父类的覆盖很容易搞得很乱，但是既然是 **用 Rust 实现**，既然是 **我** 来，那必须要设计一个优雅的模式。
 
+### 对象管理
+
+```mermaid
+flowchart LR
+subgraph Scene
+	ExtractedRabjectWithId
+end
+
+Blueprint --build--> RabjectWithId --extract--> ExtractedRabjectWithId
+```
+
+#### 1. Rabject
+
+*Rabject（Ranim Object）*是 Ranim 的场景所管理的对象，它其实是一个 Trait：
+
+```rust
+pub trait Rabject: 'static + Clone {
+    type RenderResource;
+
+    /// Used to initialize the render resource when the rabject is extracted
+    fn init_render_resource(ctx: &mut RanimContext, rabject: &Self) -> Self::RenderResource;
+
+    fn update_render_resource(
+        ctx: &mut RanimContext,
+        rabject: &RabjectWithId<Self>,
+        render_resource: &mut Self::RenderResource,
+    ) where
+        Self: Sized;
+
+    fn begin_render_pass<'a>(
+        encoder: &'a mut wgpu::CommandEncoder,
+        multisample_view: &wgpu::TextureView,
+        target_view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
+    ) -> wgpu::RenderPass<'a>;
+
+    fn render<'a>(
+        ctx: &mut RanimContext,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        render_resource: &Self::RenderResource,
+    );
+}
+
+```
+
+每个 Rabject 都有一个与之关联的 `RenderResource` 类型。它定义了所有在渲染 Rabject 时所需要的资源，比如顶点数据、额外的 Uniform 数据等等。
+
+对应的有两个方法：`init_render_resource` 和 `update_render_resource`，分别用于初始化和更新。
+
+剩下的 `begin_render_pass` 和 `render` 则用于渲染。
+
+Ranim 目前内部实现的 Rabject 只有一个 VMobject，其内部保存的是图形的路径数据，在更新渲染资源时解析为 `render` 中用到的管线中所需的数据。
+
+#### 2. Blueprint\<T: Rabject> 与 RabjectWithId\<T: Rabject>
+
+在使用 *ranim* 时，并不会直接操作 `Rabject`，而是操作的一个实现了 `Deref` 到 `Rabject` 和 `DerefMut` 的 `RabjectWithId<T: Rabject>`：
+
+```rust
+#[derive(Clone)]
+pub struct RabjectWithId<T: Rabject> {
+    id: Id,
+    rabject: T,
+}
+
+```
+
+它在被创建时会生成一个唯一的 `Id`，而它的创建只能通过 `Blueprint` 的 `build` 方法获得：
+
+```rust
+pub trait Blueprint<T: Rabject> {
+    fn build(self) -> RabjectWithId<T>;
+}
+```
+
+**Blueprint** 是一系列 **Rabject** 的 builder，比如对于 `VMobject`，有如下的 `Blueprint`：
+
+- `Arc`：圆弧
+- `ArcBetweenPoints`：两点间的圆弧
+- `Circle`：圆
+- `Point`：点
+- `Polygon`：多边形
+- ......
+
+#### 3. Scene 与 ExtractedRabjectWithId\<T: Rabject>
+
+*ranim* 的场景管理的对象不是 `Rabject` 也不是 `RabjectWithId`，而是 `ExtractedRabjectWithId`：
+
+```rust
+pub struct ExtractedRabjectWithId<T: Rabject> {
+    id: Id,
+    pub(crate) render_resource: T::RenderResource,
+}
+
+impl<T: Rabject> ExtractedRabjectWithId<T> {
+    pub fn update_render_resource(&mut self, ctx: &mut RanimContext, rabject: &RabjectWithId<T>) {
+        T::update_render_resource(ctx, rabject, &mut self.render_resource);
+    }
+}
+
+```
+
+它可以由 `RabjectWithId` 的 `extract` 方法得到：
+
+```rust
+impl<T: Rabject> RabjectWithId<T> {
+    pub fn extract(&self, ctx: &mut RanimContext) -> ExtractedRabjectWithId<T> {
+        ExtractedRabjectWithId {
+            id: self.id,
+            render_resource: T::init_render_resource(ctx, &self.rabject),
+        }
+    }
+}
+```
+
+场景中用于添加对象的方法为：
+
+```rust
+pub fn insert_rabject<R: Rabject>(
+      &mut self,
+      ctx: &mut RanimContext,
+      rabject: &RabjectWithId<R>,
+  )
+```
+
+保存这些对象的结构为一个 `HashMap<TypeId, Vec<(Id, Box<dyn Any>)>>`：
+
+- `TypeId`：`std::any::TypeId::of::<R>()`
+- `Id`：`rabject` 的 Id
+- `Box<dyn Any>`：经过类型擦除后的 `rabject`
+
+当对应 `Id` 已存在时，则调用 `ExtractedRabjectWithId<R>` 的 `update_render_resource` 方法更新渲染数据；
+
+对应 `Id` 不存在时，则调用 `RabjectWithId<R>` 的 `extract` 方法构建一个对应的 `ExtractedRabjectWithId<R>`。
+
+
+
+---
+
+Draft
+
 ### 渲染相关设计
 
 由于 *manim* 使用的是 *mordengl*，可以借助 **几何着色器** 来生成图元。
