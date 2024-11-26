@@ -1,0 +1,10 @@
+[package]
+name = "compute-texture-store"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wgpu.workspace = true
+pollster.workspace = true
+async-channel = "2.3.1"
+image = "0.25.5"

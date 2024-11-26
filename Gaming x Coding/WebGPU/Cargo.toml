@@ -1,0 +1,6 @@
+[workspace]
+members = ["playgrounds/*"]
+
+[workspace.dependencies]
+pollster = "0.4.0"
+wgpu = "23.0.1"
