@@ -4,6 +4,22 @@
 
 manim 的主要使用方式是通过 *manimgl* 命令从 py 文件中提取 Scene，然后将其运行。
 
+
+
+ranim 的整个场景是 3D 的，如果想要渲染 2D 内容，则需要在 3D 空间中添加一个“2D面板”
+
+camera.overlay 是一个特殊的“2D面板”，会固定在相机上随着相机的旋转移动而移动
+
+
+
+
+
+## 坐标系
+
+对于 2D 图形来说，最符合逻辑的坐标系应当是 x 轴正方向朝右，y 轴正方向朝下。
+
+但是 wgpu 的 NDC 坐标系是 x 轴正方向朝右，y 轴正方向朝上的左手系。
+
 ## 架构
 
 一旦涉及逻辑与渲染，必然离不开一个问题：如何合理地设计这两部分的数据交互。
@@ -12,7 +28,136 @@ manim 的主要使用方式是通过 *manimgl* 命令从 py 文件中提取 Scen
 
 Python / OOP当然可以这么设计，虽然各种晚初始化的 field 和各种子类对父类的覆盖很容易搞得很乱，但是既然是 **用 Rust 实现**，既然是 **我** 来，那必须要设计一个优雅的模式。
 
-### 对象管理
+### 场景（Scene）与对象管理
+
+*ranim* 中的对象管理十分简单，对象之间没有层级关系，向场景中插入对象会转移对象所有权并获得一个对象的标识符 `RabjectId<R: Rabject>`，后续可以根据这个 Id 获取到对象的引用或可变引用。
+
+**对象** 在 *ranim* 中被称作 `Rabject`，它实际上就是下面这个 Trait：
+
+```rust
+pub trait Rabject {
+    type RenderData: Default;
+    type RenderResource: Primitive;
+
+    fn extract(&self) -> Self::RenderData;
+}
+```
+
+在场景中一个对象的相关数据被以下面的形式保存：
+
+```rust
+pub struct RabjectStore<R: Rabject> {
+    /// The rabject
+    pub rabject: R,
+    /// The extracted data from the rabject
+    pub render_data: Option<R::RenderData>,
+    /// The prepared render resource of the rabject
+    pub render_resource: Option<R::RenderResource>,
+}
+```
+
+一个是 `Rabject` 本身的数据，而另两个正对应着 `Rabject` 的两个关联类型：
+
+- `RenderData`：更新渲染资源所需的数据，由 `Rabject::extract` 获取
+
+- `RenderResource`：实际渲染时所使用的资源（如 bindgroup、buffer、texture 等），实现了 `Primitive` Trait，可以被直接渲染：
+
+    ```rust
+    pub trait Primitive {
+        type Data;
+        fn init(wgpu_ctx: &WgpuContext, data: &Self::Data) -> Self;
+        fn update(&mut self, wgpu_ctx: &WgpuContext, data: &Self::Data);
+        fn render(
+            &self,
+            wgpu_ctx: &WgpuContext,
+            pipelines: &mut RenderResourceStorage,
+            multisample_view: &wgpu::TextureView,
+            target_view: &wgpu::TextureView,
+            depth_view: &wgpu::TextureView,
+            uniforms_bind_group: &wgpu::BindGroup,
+        );
+    }
+    ```
+
+而这两个关联类型，正恰好对应了 *ranim* 中渲染相关的核心阶段
+
+### 渲染核心阶段
+
+对象从数据到被渲染的过程可以被表示为下面这张图：
+
+```mermaid
+flowchart LR
+
+Rabject --extract--> RenderData --prepare--> RenderResource --render--> Result
+```
+
+- *Extract Phase*（CPU）：从逻辑数据提取出渲染所需的渲染数据 `RenderData`
+
+    对应 `Rabject::extract`
+
+- *Prepare Phase*（CPU -> GPU）：使用渲染数据来初始化/更新渲染资源 `RenderResource`，
+
+    对应 `Primitive::init` 和 `Primitive::update`
+
+- *Render Phase*（CPU -> GPU）：进行实际的渲染调用
+
+    对应 `Primitive::render`
+
+### 更新器 与 动画
+
+在这个全新的架构下，由于 `Rabject` 的逻辑数据也被 `Scene` 管理，于是 `Scene` 便可以“自主”地更新 `Rabject`。
+
+一个最简单的 **更新器** 可以是一个在每 *tick* 运行的闭包，但是简单的闭包无法保存状态信息，因此将其作为一个 Trait 封装：
+
+```rust
+pub trait Updater<R: Rabject> {
+    #[allow(unused)]
+    /// Called when the updater is created
+    fn on_create(&mut self, rabject: &mut R){}
+    /// Return false if the updater is done, then it will be removed from the scene
+    fn on_update(&mut self, rabject: &mut R, dt: f32) -> bool;
+    #[allow(unused)]
+    /// Called when the updater is destroyed
+    fn on_destroy(&mut self, rabject: &mut R){}
+}
+```
+
+当然，一个简单的闭包也可以是一个更新器：
+
+```rust
+impl<R: Rabject, T: FnMut(&mut R, f32) -> bool> Updater<R> for T {
+    fn on_update(&mut self, rabject: &mut R, dt: f32) -> bool {
+        self(rabject, dt)
+    }
+}
+```
+
+
+
+
+
+
+
+---
+
+18ced3a85a04633b8547e8239a31dd53becfbad5 之前
+
+
+
+### 场景（Scene）与对象管理
+
+在 *manim* 中，对象与动画均被组织在 `Scene` 中，其 API 主要通过继承自 `Scene` 并在 `construct` 函数中调用自身方法的方式来使用。一个 `Scene` 可以直接运行输出视频，也可以作为一个可交互场景运行。
+
+每个对象的渲染和逻辑数据都位于同一个结构中，`Scene` 中直接保存着这些对象（因为是 Python，所以可以在 `construct` 中与 `Scene` 内部同时保存同一个对象的引用）。
+
+```mermaid
+flowchart
+Rabject
+```
+
+
+
+#### 思路一：场景中只保存渲染数据
 
 ```mermaid
 flowchart LR
@@ -23,41 +168,30 @@ end
 Blueprint --build--> RabjectWithId --extract--> ExtractedRabjectWithId
 ```
 
-#### 1. Rabject
+逻辑侧：每一个 `Rabject` 只能由 Blueprint 创建，创建出来会被包装在一个 `RabjectWithId<R: Rabject>` 中。
+
+渲染测：通过 `Scene::insert_rabject` 可以向场景插入或更新 `Rabject`，对应会创建或更新渲染资源。
+
+
+
+- Extract：从逻辑数据生成渲染数据
+- Prepare：从渲染数据更新缓冲等资源
+- Render：渲染
+
+
+
+##### 1. Rabject
 
 *Rabject（Ranim Object）*是 Ranim 的场景所管理的对象，它其实是一个 Trait：
 
 ```rust
 pub trait Rabject: 'static + Clone {
-    type RenderResource;
-
-    /// Used to initialize the render resource when the rabject is extracted
-    fn init_render_resource(ctx: &mut RanimContext, rabject: &Self) -> Self::RenderResource;
-
-    fn update_render_resource(
-        ctx: &mut RanimContext,
-        rabject: &RabjectWithId<Self>,
-        render_resource: &mut Self::RenderResource,
-    ) where
-        Self: Sized;
-
-    fn begin_render_pass<'a>(
-        encoder: &'a mut wgpu::CommandEncoder,
-        multisample_view: &wgpu::TextureView,
-        target_view: &wgpu::TextureView,
-        depth_view: &wgpu::TextureView,
-    ) -> wgpu::RenderPass<'a>;
-
-    fn render<'a>(
-        ctx: &mut RanimContext,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        render_resource: &Self::RenderResource,
-    );
+    type Renderer: Renderer<Self> + RenderResource;
+    type RenderInstance: RenderInstance<Self>;
 }
-
 ```
 
-每个 Rabject 都有一个与之关联的 `RenderResource` 类型。它定义了所有在渲染 Rabject 时所需要的资源，比如顶点数据、额外的 Uniform 数据等等。
+每个 Rabject 都有一个与之关联的 `RenderInstance` 类型。它定义了所有在渲染 Rabject 时所需要的资源，比如顶点数据、额外的 Uniform 数据等等。
 
 对应的有两个方法：`init_render_resource` 和 `update_render_resource`，分别用于初始化和更新。
 
@@ -65,7 +199,7 @@ pub trait Rabject: 'static + Clone {
 
 Ranim 目前内部实现的 Rabject 只有一个 VMobject，其内部保存的是图形的路径数据，在更新渲染资源时解析为 `render` 中用到的管线中所需的数据。
 
-#### 2. Blueprint\<T: Rabject> 与 RabjectWithId\<T: Rabject>
+##### 2. Blueprint\<T: Rabject> 与 RabjectWithId\<T: Rabject>
 
 在使用 *ranim* 时，并不会直接操作 `Rabject`，而是操作的一个实现了 `Deref` 到 `Rabject` 和 `DerefMut` 的 `RabjectWithId<T: Rabject>`：
 
@@ -95,7 +229,7 @@ pub trait Blueprint<T: Rabject> {
 - `Polygon`：多边形
 - ......
 
-#### 3. Scene 与 ExtractedRabjectWithId\<T: Rabject>
+##### 3. Scene 与 ExtractedRabjectWithId\<T: Rabject>
 
 *ranim* 的场景管理的对象不是 `Rabject` 也不是 `RabjectWithId`，而是 `ExtractedRabjectWithId`：
 
@@ -145,6 +279,84 @@ pub fn insert_rabject<R: Rabject>(
 当对应 `Id` 已存在时，则调用 `ExtractedRabjectWithId<R>` 的 `update_render_resource` 方法更新渲染数据；
 
 对应 `Id` 不存在时，则调用 `RabjectWithId<R>` 的 `extract` 方法构建一个对应的 `ExtractedRabjectWithId<R>`。
+
+#### 思路二：场景中分开保存逻辑与渲染对象
+
+```mermaid
+flowchart LR
+subgraph Scene
+	RabjectWithId --extract--> ExtractedRabjectWithId
+end
+
+Blueprint --build--> Rabject --insert--> RabjectWithId
+
+Scene --rabject_ref--> b[&Rabject]
+Scene --rabject_mut--> a[&mut Rabject]
+```
+
+
+
+### 动画
+
+### 
+
+```mermaid
+flowchart LR
+
+a[RabjectWithId] --extract--> b[ExtractedRabjectWithId]
+
+subgraph Scene
+	b
+end
+```
+
+每一个 `Rabject` 在被创建时都有一个唯一的 `id`。
+
+每一个动画可以被考虑为一个 **初始 Rabject** 和 **结束 Rabject** 的某种插值，有的还涉及 Rabject 的添加/移除：
+
+- 移动：对顶点数据的位置进行插值
+- 颜色变换：对顶点数据的颜色进行插值
+    - FadeIn：从透明度 1.0 到透明度 0.0，**移除 Mobject**
+    - FadeOut：**添加 Mobject**，从透明度 0.0 到透明度 1.0
+- Transform：对两个 Mobject 的顶点数据进行插值，**移除第一个 Mobject，添加第二个 Mobject**
+- ......
+
+而这个 **初始 Rabject** 和 **结束 Rabject** 又分为显性和隐性：
+
+- 显性：即指定前者和后者，可以认为就是 Transform
+- 隐性，没有显性指定，而是在动画进行过程中隐式计算
+
+
+
+基本有三个属性 **是否移除**、**结束 Rabject**：
+
+- 对于 **是否移除**，决定动画完成时是否移除 **动画 Rabject**
+
+- 对于 **结束 Rabject**，决定动画结束时是否添加 **结束 Rabject**
+
+
+
+
+
+对其进行简化，可以认为每一个动画都拥有一个对应的 `Rabject`：
+
+- 播放动画前向场景中插入这个 `Rabject`
+- 随着动画的进行，对这个 `Rabject` 进行插值更新，并更新到场景中
+- 最终根据是否移除对场景的 rabjects 进行变更
+
+所有的 **插值函数** 都可以抽象为一个 Trait：
+
+```rust
+pub trait AnimationFunc<Vertex: PipelineVertex> {
+    #[allow(unused)]
+    fn pre_anim(&mut self, mobject: &mut Mobject<Vertex>) {}
+
+    fn interpolate(&mut self, mobject: &mut Mobject<Vertex>, alpha: f32);
+
+    #[allow(unused)]
+    fn post_anim(&mut self, mobject: &mut Mobject<Vertex>) {}
+}
+```
 
 
 
@@ -212,56 +424,7 @@ pub trait Blueprint<T: Rabject> {
 
 
 
-```mermaid
-flowchart LR
-Blueprint[Blueprint 结构] --> RabjectWithId
 
-Rabject --解析--> b[Vertex 数据] --> GPU
-
-subgraph Rabject
-	RabjectWithId --extract--> ExtractedRabjectWithId
-end
-
-subgraph GPU
-	direction LR
-	Vertex -->  Frag
-end
-```
-
-这也导致整个渲染架构的分层会不可避免地变多。在这个条件下还要满足「对象」的类型擦除，还要在对应渲染时还原出其对应使用的管线。
-
-定义 `Renderer` Trait 如下：
-
-
-
-定义 `Renderable` Trait 如下：
-
-```rust
-pub trait Renderable {
-    type Vertex;
-    fn parse(&self) -> Vec<Vertex>;
-}
-```
-
-
-
-设计出几种对象：
-
-- `Renderer` 渲染器，接收某一种输入类型
-
-- `RenderPipeline` 具有 `type Vertex`
-
-    因为每一个管线所能输入的顶点类型是唯一的
-
-- `Object` 具有 `type Renderer`
-
-    因为每一个被创建出的对象其渲染方式是唯一的
-
-- 
-
-每一个 `Vertex` 却可以由多种 `Pipeline` 渲染，
-
-- `Renderable<Vertex>`
 
 
 
@@ -490,49 +653,6 @@ pub struct Scene {
 
 
 ### 动画
-
-```mermaid
-flowchart LR
-
-Mobject --clone--> ClonedMobject
-
-subgraph Scene
-	ClonedMobject
-end
-```
-
-每一个 `Mobject` 在被创建时都有一个唯一的 `id`。
-
-每一个动画可以被考虑为一个 **初始 Mobject** 和 **结束 Mobject** 的某种插值，有的还涉及 Mobject 的添加/移除：
-
-- 移动：对顶点数据的位置进行插值
-- 颜色变换：对顶点数据的颜色进行插值
-    - FadeIn：从透明度 1.0 到透明度 0.0，**移除 Mobject**
-    - FadeOut：**添加 Mobject**，从透明度 0.0 到透明度 1.0
-- Transform：对两个 Mobject 的顶点数据进行插值，**移除第一个 Mobject，添加第二个 Mobject**
-- ......
-
-对其进行简化，可以认为每一个动画都拥有一个对应的 `Mobject`：
-
-- 播放动画前向场景中插入这个 `Mobject`
-- 随着动画的进行，对这个 `Mobject` 进行插值更新
-- 最终根据是否移除对场景的 mobjects 进行变更
-
-所有的 **插值函数** 都可以抽象为一个 Trait：
-
-```rust
-pub trait AnimationFunc<Vertex: PipelineVertex> {
-    #[allow(unused)]
-    fn pre_anim(&mut self, mobject: &mut Mobject<Vertex>) {}
-
-    fn interpolate(&mut self, mobject: &mut Mobject<Vertex>, alpha: f32);
-
-    #[allow(unused)]
-    fn post_anim(&mut self, mobject: &mut Mobject<Vertex>) {}
-}
-```
-
-
 
 无多采样：
 
