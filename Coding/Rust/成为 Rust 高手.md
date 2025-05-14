@@ -197,6 +197,223 @@ impl<T: TraitA> TraitTarget<MarkA> {}
 impl<T: TraitB> TraitTarget<MarkB> {}
 ```
 
+## | 0003 | 泛型 Trait 与 关联类型 Trait 的本质
+
+泛型 Trait `TraitGeneric<T>` 可以为同一个类型实现不同的 `T`，而关联类型 Trait `TraitAssociated<AssociatedType = T>` 则只能实现一次。
+
+// TODO
+
+## 0004 | 为泛型 Trait 实现 Trait 中的泛型约束
+
+如果我们想要为任意类型 `T: TraitRequire` 实现 Trait `TraitTarget`，可以这样写：
+
+```rust
+impl<T: TraitRequire> TraitTarget for T {}
+```
+
+但是，如果 `TraitRequire` 带有泛型参数呢？
+
+```rust
+impl<T: TraitRequire<E>, E> TraitTarget for T {}
+```
+
+这样写会无法编译通过：
+
+```
+error[E0207]: the type parameter `E` is not constrained by the impl trait, self type, or predicates
+```
+
+仔细思考一下，对于同一个 `T`，可能具有对不同的 `E` 的 `TraitRequire<E>` 的实现，是无法决定对 `T` 使用哪一个实现的。
+
+因此要么为 `TraitTarget` 添加泛型参数来约束 `E`：
+
+```rust
+impl<T: TraitRequire<E>, E> TraitTarget<E> for T {}
+```
+
+要么，将 `TraitRequire` 的泛型参数 `E` 修改为关联类型：
+
+```rust
+impl<T: TraitRequire> TraitTarget<> for T {}
+```
+
+## 0005 | MutParts 模式（自己瞎想的）
+
+常规的封装使用 `&T` 或 `&mut T` 为接收器：
+
+```rust
+pub struct Foo {
+    pub field1: Foo1,
+    pub field2: Foo2,
+}
+
+impl Foo {
+    pub fn foo(&mut self) {
+        self.field1.do_something();
+        self.field2.do_something();
+        // ...
+    }
+}
+```
+
+然而，实际上 `foo` 并不依赖于整个结构体，而是结构体内部的字段（所有的方法都是），也就是说即便 `Foo` 被大卸八块，字段被分散在各处，拿到全部字段的 `&` 或 `&mut` 则完全可以完成相同的操作。
+
+具体的实现方法就是单独实现一个结构体 `FooMut<'a>`，为对全部字段的引用，然后将对应的方法修改为基于 `FooMut<'a>` 的：
+
+```rust
+pub struct FooMut<'a> {
+    pub field1: &'a mut Foo1,
+    pub field2: &'a mut Foo2,
+}
+
+impl FooMut {
+    pub fn foo(&mut self) {
+        self.field1.do_something();
+        self.field2.do_something();
+        // ...
+    }
+}
+```
+
+在这个基础之上，可以通过一个 `MutParts` Trait 来对不同的结构（都可以整合出全部 field 的引用）提供相同的接口：
+
+```rust
+pub trait MutParts<'a> {
+    type Mut: 'a;
+    fn mut_parts(&'a mut self) -> Self::Mut;
+}
+
+#[item]
+pub struct Arrow {
+    pub tip: VItem,
+    pub line: VItem,
+}
+
+/* Can be generated through macros
+pub struct ArrowRabject<'t> {
+    pub tip: Rabject<'t, VItem>,
+    pub line: Rabject<'t, VItem>,
+}
+
+pub struct ArrowMutParts<'r> {
+    pub tip: &'r mut VItem,
+    pub line: &'r mut VItem,
+}
+
+impl<'r> MutParts<'r> for Arrow {
+    type Mut = ArrowMutParts<'r>;
+    fn mut_parts(&'r mut self) -> Self::Mut {
+        ArrowMutParts {
+            tip: &mut self.tip,
+            line: &mut self.line,
+        }
+    }
+}
+
+impl<'r, 't: 'r> MutParts<'r> for ArrowRabject<'t> {
+    type Mut = ArrowMutParts<'r>;
+    fn mut_parts(&'r mut self) -> Self::Mut {
+        ArrowMutParts {
+            tip: &mut self.tip.data,
+            line: &mut self.line.data,
+        }
+    }
+}
+*/
+
+pub trait ArrowMethods<'a>: MutParts<'a, Mut = ArrowMutParts<'a>> {
+    fn set_tip(&'a mut self, tip: VItem);
+    fn set_line(&'a mut self, line: VItem);
+}
+
+impl<'a, T: MutParts<'a, Mut = ArrowMutParts<'a>>> ArrowMethods<'a> for T{
+    fn set_tip(&'a mut self, tip: VItem) {
+        *self.mut_parts().tip = tip;
+    }
+
+    fn set_line(&'a mut self, line: VItem) {
+        *self.mut_parts().line = line;
+    }
+}
+
+fn foo() {
+    let timeline = RanimTimeline::new();
+
+    let mut arrow = Arrow {
+        tip: VItem::empty(),
+        line: VItem::empty(),
+    };
+
+    arrow.set_tip(VItem::empty());
+
+    let mut arrow_rabject = ArrowRabject {
+        tip: Rabject {
+            timeline: &timeline,
+            id: 0,
+            data: arrow.tip,
+        },
+        line: Rabject {
+            timeline: &timeline,
+            id: 1,
+            data: arrow.line,
+        },
+    };
+
+    arrow_rabject.set_tip(VItem::empty());
+}
+```
+
+## 0006 | 何时使用 inline？
+
+> https://matklad.github.io/2021/07/09/inline-in-rust.html
+
+通过 `#[inline]` 标记的函数会在被调用的时候将调用替换为函数体内容。
+
+比如对于下面的例子：
+
+```rust
+#[inline]
+fn inline_mul(x: u32, y: u32) -> u32 {
+    x * y
+}
+
+fn square(x: u32) -> u32 {
+    inline_mul(x, x)
+}
+```
+
+`square` 会被转换为：
+
+```rust
+fn square(x: u32) -> u32 {
+    x * x
+}
+```
+
+优点在于：
+
+- 无函数调用产生的 overhead
+- 被调用者和调用者会被在一起优化
+
+对于 Rust 来说，编译器拥有对同一个 Crate 中的函数的完全访问，但是对于外部的 Crate，由于只具有其签名信息，不具有函数体信息，无法 inline。而通过 `#[inline]` 则可以实现跨 Crate 的内联，但是会显著提高编译时间。
+
+此外：
+
+- 泛型函数是隐式内联的
+- LTO（Link-Time Optimization）也可以实现类似内联的效果，但是会使编译时间更慢。
+
+## 0007 | Move 原理与 Copy
+
+https://stackoverflow.com/questions/30288782/what-are-move-semantics-in-rust/30290070#30290070
+
+https://users.rust-lang.org/t/how-move-works-in-rust/116776
+
+Copy 和 Move 所做的事情都是 `memcpy` `size_of::<T>()` 大小的数据（即浅拷贝），唯一的区别在于 Move 会将原来的数据标记为失效。
+
+也就是说，**Copy 的性能损耗与 Move 完全一致**。
+
+不过对于绝大多数类型，其性能损耗都是极小的。对于部分较大的类型，如 `[T;N]`，可能会导致性能损耗是非平凡的，同时也可能导致栈溢出。
+
 ## 参考
 
 https://nihil.cc
